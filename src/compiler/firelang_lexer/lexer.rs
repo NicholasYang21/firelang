@@ -15,9 +15,10 @@ impl Default for Lexer<'_> {
     }
 }
 
-impl Lexer {
-    pub fn new(src: String) -> Self {
-        Lexer { source : src, line: 1, position: 0 }
+impl Lexer<'_> {
+    pub fn new(src: &str) -> Lexer {
+        let temp = src.chars();
+        Lexer { source : temp, line: 1, column: 1 }
     }
 
     fn next_char(&mut self) -> Option<char> {
@@ -105,8 +106,8 @@ pub struct Token {
 }
 
 /// All kinds of tokens in Fire.
-enum TokenKind {
-    /// Illegal token
+pub enum TokenKind {
+    /// Illegal token (unknown invalid unicode)
     Illegal,
     /// Whitespace character
     Space,
