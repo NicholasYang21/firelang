@@ -1,17 +1,17 @@
-use std::io::Read;
-use anyhow::*;
+use std::str::Chars;
+use crate::compiler::firelang_lexer::lexer::TokenKind::{BlockComment, Illegal, LineComment, Slash, Space};
 
 /// Lexer Struct
 /// Parse the whole language sourcefile
-pub struct Lexer {
-    source: String,
+pub struct Lexer<'a> {
+    source: Chars<'a>,
     line: usize,
-    position : usize
+    column : usize,
 }
 
-impl Default for Lexer {
+impl Default for Lexer<'_> {
     fn default() -> Self {
-        Self::new("".into())
+        Self::new("")
     }
 }
 
@@ -20,39 +20,84 @@ impl Lexer {
         Lexer { source : src, line: 1, position: 0 }
     }
 
-    fn next_char(&mut self) -> Result<char> {
-        if self.position == (self.source.len() - 1) {
-            bail!("Error at line {} : unexpected EOF", self.line);
-        }
+    fn next_char(&mut self) -> Option<char> {
+        let c = self.source.next()?;
 
-        self.position += 1;
-        let res = self.source.get(self.position..).ok_or_else( ||
-            anyhow!("Error at line {} : failed to read", self.line)
-        )?.chars().next().ok_or_else( ||
-            anyhow!("Error at line {} : failed to read", self.line)
-        )?;
+        self.column += 1;
 
-        if res == '\n' {
+        if c == '\n' {
             self.line += 1;
+            self.column = 0;
         }
 
-        Ok(res)
+        Some(c)
     }
 
-    pub fn advance_token(&mut self) -> Result<String> {
+    fn lookahead(&self) -> char {
+        self.source.clone().next().unwrap_or('\0')
+    }
 
-            let token = (self.source.get(self.position..).ok_or_else( ||
-                anyhow!("Error at line {} , failed to read", self.line)
-            )?).split_whitespace().next().ok_or_else( ||
-                anyhow!("Error at line {} , failed to read",self.line)
-            )?;
-            self.position += (token.len() + 1);// add the length of whitespace
-            if token == "\n" {
-                self.line += 1;
+    pub fn advance_token(&mut self) -> Token {
+        let first = self.next_char().unwrap();
+        match first {
+            c if c.is_whitespace() => {
+                self.whitespace()
             }
-            Ok(token.into())
+
+            '/' => {
+                match self.lookahead() {
+                    '/' => self.line_comment(),
+                    '*' => self.block_comment(),
+                    _   => Token { kind: Slash, content: "/".to_string() },
+                }
+            },
+
+
+
+            _ => Token { kind: Illegal, content: "unexpected".to_string()},
         }
     }
+
+    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
+        while !f(self.lookahead()) && !self.source.as_str().is_empty() {
+            self.next_char();
+        }
+    }
+
+    fn whitespace(&mut self) -> Token {
+        self.eat_while(|x| !x.is_whitespace());
+        Token { kind: Space, content: " ".to_string() }
+    }
+
+    fn line_comment(&mut self) -> Token {
+        self.eat_while(|x| x == '\n');
+        Token { kind: LineComment, content: " ".to_string() }
+    }
+
+    fn block_comment(&mut self) -> Token {
+        let mut d = 1usize;
+
+        while let Some(x) = self.next_char() {
+            match x {
+                '/' if self.lookahead() == '*' => {
+                    self.next_char();
+                    d += 1;
+                },
+                '*' if self.lookahead() == '/' => {
+                    self.next_char();
+                    d -= 1;
+                },
+                _ => (),
+            }
+        }
+
+        Token {
+            kind:
+                BlockComment { unexpected: d == 0 },
+            content: " ".to_string()
+        }
+    }
+}
 
 pub struct Token {
     kind: TokenKind,
@@ -65,8 +110,10 @@ enum TokenKind {
     Illegal,
     /// Whitespace character
     Space,
-    /// Comment: "// comment" or "/* Comment */"
-    Comment,
+    /// "// comment"
+    LineComment,
+    /// "/* Comment */"
+    BlockComment { unexpected: bool },
     /// Identifier / Keyword: "abc" or "int32"
     Ident,
     /// ### Literals
@@ -134,12 +181,16 @@ enum TokenKind {
     Caret,
 }
 
-enum LiteralKind {
+pub enum LiteralKind {
     Int { base: NumBase },
     Float { base: NumBase },
-
+    Char,
+    Str,
+    Boolean,
+    RawChar,
+    RawStr,
 }
 
-enum NumBase {
+pub enum NumBase {
     Hex, Oct, Bin, Dec
 }
