@@ -121,6 +121,35 @@ pub enum NumBase {
     Hex, Oct, Bin, Dec
 }
 
+impl Iterator for Lexer<'_> {
+    type Item = char;
+    fn next(&mut self) -> Option<Self::Item> {
+        let c = self.source.next();
+
+        self.prev = c.unwrap();
+
+
+        self.column += 1;
+        if c == Some('\n') {
+            self.line += 1;
+            self.column = 0;
+        }
+        c
+    }
+}
+
+impl DoubleEndedIterator for Lexer<'_> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let c = self.source.next_back();
+        self.column -= 1;
+        if c == Some('\n') {
+            self.line -= 1;
+            self.column = self.source.as_str().lines().nth(self.line - 1).unwrap().len();
+        }
+        c
+    }
+}
+
 impl Lexer<'_> {
     pub fn new(src: &str) -> Lexer {
         Lexer { source: src.chars(), prev: EOF, line: 1, column: 0 }
@@ -134,6 +163,10 @@ impl Lexer<'_> {
         while !f(self.lookahead()) && !self.source.as_str().is_empty() {
             self.next();
         }
+    }
+
+    fn before(&self) -> char {
+        self.prev
     }
 
     pub fn advance_token(&mut self) -> Token {
