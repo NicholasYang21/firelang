@@ -7,7 +7,7 @@ fn main() {
     let mut lexer = Lexer::new(buf.as_str());
 
     loop {
-        let t = lexer.advance_token();
+        let t = lexer.next_token();
         println!("{:#?}", t);
 
         if t.kind == Eof {

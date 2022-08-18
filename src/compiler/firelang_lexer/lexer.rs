@@ -1,7 +1,7 @@
 use std::str::Chars;
 use TokenKind::*;
 use NumBase::*;
-use crate::compiler::firelang_lexer::lexer::LiteralKind::{Float, Int};
+use LiteralKind::*;
 
 /// Lexer Struct
 /// Parse the whole language sourcefile
@@ -13,6 +13,7 @@ pub struct Lexer<'a> {
     pub column : usize,
 }
 
+/// The end of file.
 pub const EOF: char = '\0';
 
 /// All kinds of tokens in Fire.
@@ -48,7 +49,7 @@ pub enum TokenKind {
     /// 0b1001010
     /// 0o1234567
     /// ```
-    Literal { kind: LiteralKind },
+    Literal { kind: LiteralKind, suffix: String },
     /// + (Add)
     Plus,
     /// - (Minus)
@@ -107,8 +108,8 @@ pub struct Token {
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq,Clone)]
 pub enum LiteralKind {
-    Int { base: NumBase },
-    Float,
+    Int { base: NumBase, dangling: bool },
+    Float { base: NumBase, dangling: bool },
     Char,
     Str,
     Boolean,
@@ -138,44 +139,38 @@ impl Iterator for Lexer<'_> {
     }
 }
 
-impl DoubleEndedIterator for Lexer<'_> {
-    fn next_back(&mut self) -> Option<Self::Item> {
-        let c = self.source.next_back();
-        self.column -= 1;
-        if c == Some('\n') {
-            self.line -= 1;
-            self.column = self.source.as_str().lines().nth(self.line - 1).unwrap().len();
-        }
-        c
-    }
-}
-
 impl Lexer<'_> {
     pub fn new(src: &str) -> Lexer {
         Lexer { source: src.chars(), prev: EOF, line: 1, column: 0 }
     }
 
+    /// Get next char without modifying the source code.
     pub fn lookahead(&self) -> char {
         self.source.clone().next().unwrap_or(EOF)
     }
 
+    /// Eat the char until the return value of `f` being true.
     pub fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
         while !f(self.lookahead()) && !self.source.as_str().is_empty() {
             self.next();
         }
     }
 
+    /// Get the previous char.
     fn before(&self) -> char {
         self.prev
     }
 
-    pub fn advance_token(&mut self) -> Token {
+    /// Generate a token.
+    pub fn next_token(&mut self) -> Token {
         if self.source.as_str().is_empty() {
             return self.make_token(Eof, "End of file.");
         }
+
         let first = self.next().unwrap();
+
         match first {
-            '\0' => { self.make_token(Eof, "End of file.") }
+            EOF => { self.make_token(Eof, "End of file.") }
 
             c if c.is_whitespace() => {
                 self.whitespace()
@@ -193,14 +188,11 @@ impl Lexer<'_> {
                 self.ident()
             },
 
-            c if c.is_digit(10) => {
-                if c == '0' && !self.lookahead().is_numeric() {
-                    self.num_with_prefix_or_unknown_prefix()
-                } else {
-                    self.next_back();
-                    self.make_number()
-                }
-            },
+            c @ '0'..='9' => {
+                let (kind, content) = self.number(c);
+                let suffix = self.get_suffix();
+                self.make_token(Literal { kind, suffix }, content.as_str())
+            }
 
             _ => self.make_token(Illegal, "unexpected"),
         }
@@ -216,43 +208,43 @@ impl Lexer<'_> {
 
     fn whitespace(&mut self) -> Token {
         self.eat_while(|x| !x.is_whitespace());
-        Token {
-            kind: Space,
-            content: " ".to_string(),
-            line: self.line,
-            column: self.column
-        }
+        self.make_token(Space, " ")
     }
 
     fn line_comment(&mut self) -> Token {
+        let (ln, col) = (self.line - 1, self.column - 1);
+
         self.eat_while(|x| x == '\n');
         Token {
             kind: LineComment,
-            content: " ".to_string(),
-            line: self.line,
-            column: self.column
+            content: "".into(),
+            line: ln,
+            column: col,
         }
     }
 
     fn block_comment(&mut self) -> Token {
+        self.next();
+
         let mut d = 1usize;
 
         while let Some(x) = self.next() {
             match x {
                 '/' if self.lookahead() == '*' => {
-                    self.next();
                     d += 1;
                 },
 
                 '*' if self.lookahead() == '/' => {
-                    self.next(); self.next();
                     d -= 1;
+                    self.next();
+                    if d == 0 { break; }
                 },
 
-                _ => continue,
+                _ => (),
             }
         }
-        self.make_token(BlockComment { expected: d == 0 }, " ")
+
+        self.make_token(BlockComment { expected: d == 0 }, "")
     }
 
     fn ident(&mut self) -> Token {
@@ -268,57 +260,73 @@ impl Lexer<'_> {
         self.make_token(Ident, c.as_str())
     }
 
-    fn num_with_prefix_or_unknown_prefix(&mut self) -> Token {
-        let mut content : String = "".into();
+    fn number(&mut self, prev: char) -> (LiteralKind, String) {
+        let mut base: NumBase = Dec;
 
-        match self.lookahead() {
-            'x' => {
-            },
-
-            'b' => {
-            },
-
-            'o' => {
-            },
-
-            '.' => {
-            },
-            _   => { self.make_token(UnknownPrefix, "unexpected") },
-        }
-    }
-
-    fn make_number(&mut self) -> Token {
-        let mut res : String = "".into();
-        let mut dots: bool = false;
-        let mut kind: TokenKind = Literal { kind: Int { base: Dec } };
-
-        loop {
-            match self.next() {
-                Some(c) if c.is_digit(10) => {
-                    res.push(c);
+        if prev == '0' {
+            let (empty, content) = match self.lookahead() {
+                'b' => {
+                    base = Bin;
+                    self.next();
+                    self.eat_digit()
                 },
 
-                Some('.') => {
-                    if !dots {
-                        dots = true;
-                        kind = Literal { kind: Float };
-
-                        continue;
-                    }
-                    break;
+                'o' => {
+                    base = Oct;
+                    self.next();
+                    self.eat_digit()
                 },
 
-                None => {
-                    break;
+                'x' => {
+                    base = Hex;
+                    self.next();
+                    self.eat_hex()
+                }
+
+                '0'..='9' | '.' | 'e' | 'E' => {
+                    self.eat_digit()
                 }
 
                 _ => {
-                    self.next_back();
-                    break;
+                    return (Int { base: Dec, dangling: false }, "0".into());
                 }
+            };
+
+            if empty {
+                return (Int { base, dangling: true }, content)
             }
         }
 
-        self.make_token(kind, res.as_str())
+        (Int { base: Dec, dangling: false }, "0".into())
+    }
+
+    fn eat_digit(&mut self) -> (bool, String) {
+        let mut res = true;
+        let mut content: String = "".into();
+
+        while let c @ '0'..='9' = self.lookahead() {
+            res = false;
+            content.push(c);
+            self.next();
+        }
+
+        (res, content)
+    }
+
+    fn eat_hex(&mut self) -> (bool, String) {
+        let mut res = true;
+        let mut content: String = "".into();
+
+        while let c @ ('0'..='9' | 'A'..='F' | 'a'..='f') = self.lookahead() {
+            res = false;
+            content.push(c);
+            self.next();
+        }
+
+        (res, content)
+    }
+
+    fn get_suffix(&mut self) -> String {
+        "".into()
     }
 }
