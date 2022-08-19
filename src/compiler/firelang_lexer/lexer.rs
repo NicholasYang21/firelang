@@ -1,4 +1,6 @@
 use std::str::Chars;
+
+use super::unescape::*;
 use TokenKind::*;
 use NumBase::*;
 use LiteralKind::*;
@@ -106,18 +108,15 @@ pub struct Token {
     pub column: usize
 }
 
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq,Clone)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum LiteralKind {
     Int { base: NumBase, dangling: bool },
-    Float { base: NumBase, dangling: bool },
-    Char,
-    Str,
-    Boolean,
-    RawChar,
-    RawStr,
+    Float { dangling: bool },
+    Char { err: Option<EscapeError> },
+    Str { err: Option<EscapeError> },
 }
 
-#[derive(Debug,Ord, PartialOrd, Eq, PartialEq,Clone)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum NumBase {
     Hex, Oct, Bin, Dec
 }
@@ -149,7 +148,7 @@ impl Lexer<'_> {
         self.source.clone().next().unwrap_or(EOF)
     }
 
-    /// Eat the char until the return value of `f` being true.
+    /// Eat the char until the returning value of `f` being true.
     pub fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
         while !f(self.lookahead()) && !self.source.as_str().is_empty() {
             self.next();
@@ -192,6 +191,15 @@ impl Lexer<'_> {
                 let (kind, content) = self.number(c);
                 let suffix = self.get_suffix();
                 self.make_token(Literal { kind, suffix }, content.as_str())
+            },
+
+
+            '\'' => {
+                unimplemented!()
+            },
+
+            '"' => {
+                unimplemented!()
             }
 
             _ => self.make_token(Illegal, "unexpected"),
@@ -262,29 +270,34 @@ impl Lexer<'_> {
 
     fn number(&mut self, prev: char) -> (LiteralKind, String) {
         let mut base: NumBase = Dec;
+        let mut number: String = prev.into();
 
         if prev == '0' {
             let (empty, content) = match self.lookahead() {
                 'b' => {
                     base = Bin;
+                    number.push('b');
                     self.next();
                     self.eat_digit()
                 },
 
                 'o' => {
                     base = Oct;
+                    number.push('o');
                     self.next();
                     self.eat_digit()
                 },
 
                 'x' => {
                     base = Hex;
+                    number.push('x');
                     self.next();
                     self.eat_hex()
                 }
 
                 '0'..='9' | '.' | 'e' | 'E' => {
-                    self.eat_digit()
+                    let temp = self.eat_digit().1;
+                    (false, temp)
                 }
 
                 _ => {
@@ -293,40 +306,111 @@ impl Lexer<'_> {
             };
 
             if empty {
-                return (Int { base, dangling: true }, content)
+                return (Int { base, dangling: true }, content);
             }
+
+            let t = self.lookahead();
+
+            if t != '.' && t != 'e' && t != 'E' {
+                return (Int { base, dangling: false }, number + &*content);
+            }
+
+        } else {
+            number += &*self.eat_digit().1;
         }
 
-        (Int { base: Dec, dangling: false }, "0".into())
+        match self.lookahead() {
+            '.' => {
+                self.next();
+                number.push('.');
+
+                if self.lookahead().is_digit(10) {
+                    number += &*self.eat_digit().1;
+                    match self.lookahead() {
+                        'e' | 'E' => {
+                            number.push(self.next().unwrap());
+
+                            let tuple = self.eat_exponent();
+
+                            let dangling = tuple.0;
+                            number += &*tuple.1;
+
+                            (Float { dangling }, number)
+                        },
+                        _ => { (Float { dangling: false }, number) },
+                    }
+                } else { (Float { dangling: true }, number) }
+            },
+
+            'e' | 'E' => {
+                number.push(self.next().unwrap());
+
+                let tuple = self.eat_exponent();
+
+                let dangling = tuple.0;
+                number += &*tuple.1;
+
+                (Float { dangling }, number)
+            },
+
+            _ => { (Int {base, dangling: false}, number) },
+        }
     }
 
     fn eat_digit(&mut self) -> (bool, String) {
-        let mut res = true;
+        let mut dangling = true;
         let mut content: String = "".into();
 
         while let c @ '0'..='9' = self.lookahead() {
-            res = false;
+            dangling = false;
             content.push(c);
             self.next();
         }
 
-        (res, content)
+        (dangling, content)
     }
 
     fn eat_hex(&mut self) -> (bool, String) {
-        let mut res = true;
+        let mut dangling = true;
         let mut content: String = "".into();
 
         while let c @ ('0'..='9' | 'A'..='F' | 'a'..='f') = self.lookahead() {
-            res = false;
+            dangling = false;
             content.push(c);
             self.next();
         }
 
-        (res, content)
+        (dangling, content)
     }
 
     fn get_suffix(&mut self) -> String {
-        "".into()
+        if !unicode_xid::UnicodeXID::is_xid_start(self.lookahead())
+            && self.lookahead() != '_' {
+            return "".into();
+        }
+
+        let mut result: String = self.next().unwrap().into();
+
+        while unicode_xid::UnicodeXID::is_xid_continue(self.lookahead()) {
+            result.push(self.next().unwrap());
+        }
+
+        result
+    }
+
+    fn eat_exponent(&mut self) -> (bool, String) {
+        let mut res: String = "".into();
+
+        if self.lookahead() == '+' || self.lookahead() == '-' {
+            res.push(self.lookahead());
+            self.next();
+        }
+
+        let tuple = self.eat_digit();
+
+        let dangling = tuple.0;
+        res += &*tuple.1;
+
+        (dangling, res)
     }
 }
