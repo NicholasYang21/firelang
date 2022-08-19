@@ -139,6 +139,7 @@ impl Iterator for Lexer<'_> {
 }
 
 impl Lexer<'_> {
+    /// Construct a new Lexer
     pub fn new(src: &str) -> Lexer {
         Lexer { source: src.chars(), prev: EOF, line: 1, column: 0 }
     }
