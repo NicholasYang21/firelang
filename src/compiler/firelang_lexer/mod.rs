@@ -1,2 +1,2 @@
 pub mod lexer;
-mod unescape;
+pub mod unescape;

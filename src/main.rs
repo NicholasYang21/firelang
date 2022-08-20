@@ -2,16 +2,16 @@ use std::fs;
 use firelang::compiler::firelang_lexer::lexer::*;
 
 fn main() {
-    let buf : String = fs::read_to_string("../test/lexer_test.test").unwrap();
-    let mut lexer = Lexer::new(buf.as_str());
+    let buffer = fs::read_to_string("test/lexer_test.test").unwrap();
+    let mut lexer = Lexer::new(buffer.as_str());
 
     loop {
-        let t = lexer.next_token();
-        println!("{:#?}", t);
+        let token = lexer.next_token();
 
-        if t.kind == Eof {
+        println!("{:#?}", token);
+
+        if token.kind == TokenKind::Eof {
             break;
         }
     }
-
 }
