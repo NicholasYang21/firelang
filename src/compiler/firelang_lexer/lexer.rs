@@ -112,8 +112,8 @@ pub struct Token {
 pub enum LiteralKind {
     Int { base: NumBase, dangling: bool },
     Float { dangling: bool },
-    Char { err: Option<EscapeError> },
-    Str { err: Option<EscapeError> },
+    Char { unclose: bool, err: Option<UnescapeError> },
+    Str { err: Option<UnescapeError> },
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
@@ -145,12 +145,12 @@ impl Lexer<'_> {
     }
 
     /// Get next char without modifying the source code.
-    pub fn lookahead(&self) -> char {
+    fn lookahead(&self) -> char {
         self.source.clone().next().unwrap_or(EOF)
     }
 
     /// Eat the char until the returning value of `f` being true.
-    pub fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
+    fn eat_while(&mut self, mut f: impl FnMut(char) -> bool) {
         while !f(self.lookahead()) && !self.source.as_str().is_empty() {
             self.next();
         }
@@ -196,7 +196,7 @@ impl Lexer<'_> {
 
 
             '\'' => {
-                unimplemented!()
+                self.eat_char()
             },
 
             '"' => {
@@ -413,5 +413,51 @@ impl Lexer<'_> {
         res += &*tuple.1;
 
         (dangling, res)
+    }
+
+    fn eat_char(&mut self) -> Token {
+        let mut unclose: bool = false;
+        let mut content: String = "".into();
+
+        while self.lookahead() != '\'' {
+            if self.lookahead() == EOF {
+                unclose = true;
+                break;
+            }
+
+            content.push(self.next().unwrap_or(EOF));
+        }
+
+        if unclose {
+            return self.make_token(
+                Literal {
+                    kind: Char { unclose, err: None },
+                    suffix: "".into()
+                },
+                content.as_str());
+        }
+
+        if unescape(content.as_str()).is_err() {
+            let err = unescape(content.as_str()).unwrap_err();
+            let err = Some(err);
+
+            return self.make_token(
+                Literal {
+                    kind: Char { unclose, err },
+                    suffix: "".into()
+                },
+                content.as_str()
+            )
+        }
+
+        self.next();
+
+        self.make_token(
+            Literal {
+                kind: Char { unclose, err: None },
+                suffix: "".into()
+            },
+            unescape(content.as_str()).unwrap().as_str()
+        )
     }
 }

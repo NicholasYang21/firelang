@@ -18,5 +18,4 @@ opt-level = 0
 [dependencies]
 clap = "*"
 anyhow = "*"
-lazy_static = "*"
 unicode-xid = "*"
