@@ -8,8 +8,6 @@ license = "MIT"
 
 [profile.release]
 opt-level = 3
-strip = true
-lto = "thin"
 panic = "abort"
 
 [profile.dev]

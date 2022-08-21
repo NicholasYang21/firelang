@@ -1,0 +1,27 @@
+with std::io;
+
+/* A Hello, World program */
+fn main() {
+    io::println("Hello, world!");
+    io::println("
+      \u{0048}\u{0065}\u{006c}\u{006c}\u{006f}\u{002c}\u{0020}\u{0077}\u{006f}\u{0072}\u{006c}\u{0064}\u{0021}
+    ");
+    io::println("\x48\x65\x6c\x6c\x6f\x2c\x20\x77\x6f\x72\x6c\x64\x21");
+
+    // A + B Problem.
+    var a = io::read().toInt32();
+    var b = io::read().toInt32();
+
+    var c = (1 + 2 - (3 * 4)) | 0x8f
+    var d: int64 = 114514_i64;
+
+    io::println("a + b = {}, c = {}, d = {}", a + b, c, d);
+
+    io::println(r"(Raw String Test, Test, Can you hear me?)");
+
+    var e = 'c';
+    var f = '\x48';
+    var g = '\u{}'
+
+    io::println("e = {}, f = {}, g = {}", e, f, g);
+}

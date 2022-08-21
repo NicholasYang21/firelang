@@ -20,6 +20,9 @@ pub enum UnescapeError {
 pub fn unescape(input: &str) -> Result<String, UnescapeError> {
     let mut que = input.chars().collect::<VecDeque<char>>();
     let mut res: String = "".into();
+
+    if input.is_empty() { return Ok(res); }
+
     while let Some(c) = que.pop_front() {
         if c != '\\' {
             res.push(c);

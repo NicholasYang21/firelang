@@ -1,9 +1,11 @@
 use std::str::Chars;
 
 use super::unescape::*;
+
 use TokenKind::*;
 use NumBase::*;
 use LiteralKind::*;
+use RawStrError::*;
 
 /// Lexer Struct
 /// Parse the whole language sourcefile
@@ -35,7 +37,7 @@ pub enum TokenKind {
     LineComment,
     /// "/* Comment */"
     BlockComment { expected: bool },
-    /// Identifier / Keyword: "abc" or "int32"
+    /// Identifier or Keyword: "abc" or "int32"
     Ident,
     /// ### Literals
     /// Literals without prefix
@@ -110,10 +112,21 @@ pub struct Token {
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum LiteralKind {
+    /// 0xFFC66D, 0o1234567, 0b1010001010
     Int { base: NumBase, dangling: bool },
+    /// 0.12345, 1e10, 1e-10, 1e+10
     Float { dangling: bool },
+    /// 'a', '\n', '\x1b', '\u{1F600}'
     Char { unclose: bool, err: Option<UnescapeError> },
-    Str { err: Option<UnescapeError> },
+    /// "a string", "string with \n", "\x1b[33m STRING!", "\u{58a8}\u{6c34}", "中文"
+    Str { unclose: bool, err: Option<UnescapeError> },
+    RawStr { err: Option<RawStrError> }
+}
+
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
+pub enum RawStrError {
+    UncloseString,
+    UncloseParen,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
@@ -184,6 +197,14 @@ impl Lexer<'_> {
                 }
             },
 
+            'r' => {
+                if self.lookahead() == '"' {
+                    self.next();
+                    return self.eat_raw_str();
+                }
+                self.ident()
+            }
+
             c if unicode_xid::UnicodeXID::is_xid_start(c) || c == '_' => {
                 self.ident()
             },
@@ -200,8 +221,31 @@ impl Lexer<'_> {
             },
 
             '"' => {
-                unimplemented!()
-            }
+                self.eat_str()
+            },
+
+            ',' => self.make_token(Comma, ","),
+            ';' => self.make_token(Semicolon, ";"),
+            '.' => self.make_token(Dot, "."),
+            ':' => self.make_token(Colon, ":"),
+            '(' => self.make_token(LeftParen, "("),
+            ')' => self.make_token(RightParen, ")"),
+            '{' => self.make_token(LeftBrace, "{"),
+            '}' => self.make_token(RightBrace, "}"),
+            '[' => self.make_token(LeftBracket, "["),
+            ']' => self.make_token(RightBracket, "]"),
+            '~' => self.make_token(Not, "~"),
+            '^' => self.make_token(Caret, "^"),
+            '+' => self.make_token(Plus, "+"),
+            '-' => self.make_token(Minus, "-"),
+            '*' => self.make_token(Star, "*"),
+            '%' => self.make_token(Percent, "%"),
+            '=' => self.make_token(Equal, "="),
+            '!' => self.make_token(Exclamation, "!"),
+            '<' => self.make_token(Le, "<"),
+            '>' => self.make_token(Ge, ">"),
+            '&' => self.make_token(And, "&"),
+            '|' => self.make_token(Or, "|"),
 
             _ => self.make_token(Illegal, "unexpected"),
         }
@@ -458,6 +502,130 @@ impl Lexer<'_> {
                 suffix: "".into()
             },
             unescape(content.as_str()).unwrap().as_str()
+        )
+    }
+
+    fn eat_str(&mut self) -> Token {
+        let mut unclose: bool = false;
+        let mut content: String = "".into();
+
+        while self.lookahead() != '"' {
+            if self.lookahead() == EOF {
+                unclose = true;
+                break;
+            }
+
+            content.push(self.next().unwrap_or(EOF));
+        }
+
+        if unclose {
+            return self.make_token(
+                Literal {
+                    kind: Str { unclose, err: None },
+                    suffix: "".into()
+                },
+                content.as_str());
+        }
+
+        if unescape(content.as_str()).is_err() {
+            let err = unescape(content.as_str()).unwrap_err();
+            let err = Some(err);
+
+            return self.make_token(
+                Literal {
+                    kind: Str { unclose, err },
+                    suffix: "".into()
+                },
+                content.as_str()
+            )
+        }
+
+        self.next();
+
+        self.make_token(
+            Literal {
+                kind: Str { unclose, err: None },
+                suffix: "".into()
+            },
+            unescape(content.as_str()).unwrap().as_str()
+        )
+    }
+
+    fn eat_raw_str(&mut self) -> Token {
+        if self.lookahead() != '(' {
+            let mut res: String = "".into();
+            let literal =
+              Literal {
+                  kind: RawStr { err: Some(UncloseParen) },
+                  suffix: "".into()
+              };
+
+            res.push(self.lookahead());
+            self.next();
+
+            while self.lookahead() != '"' {
+                if self.lookahead() == EOF {
+                    return self.make_token(literal, res.as_str());
+                }
+
+                res.push(self.lookahead());
+                self.next();
+            }
+
+            self.next();
+            return self.make_token(literal, res.as_str());
+        }
+
+        let mut res: String = "".into();
+        self.next();
+
+        loop {
+            match self.lookahead() {
+                ')' => {
+                    self.next();
+                    if self.lookahead() == '"' {
+                        self.next();
+                        break;
+                    } else {
+                        res.push(')');
+                    }
+                },
+
+                '"' => {
+                    self.next();
+                    return self.make_token(
+                        Literal {
+                            kind: RawStr { err: Some(UncloseParen) },
+                            suffix: "".into()
+                        },
+                        ""
+                    )
+                }
+
+                EOF => {
+                    return self.make_token(
+                        Literal {
+                            kind: RawStr { err: Some(UncloseString) },
+                            suffix: "".into()
+                        },
+                        ""
+                    )
+                },
+
+                x => {
+                    res.push(x);
+                }
+            }
+
+            self.next();
+        }
+
+        self.make_token(
+            Literal {
+                kind: RawStr { err: None },
+                suffix: "".into()
+            },
+            res.as_str()
         )
     }
 }
