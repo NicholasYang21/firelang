@@ -215,7 +215,6 @@ impl Lexer<'_> {
                 self.make_token(Literal { kind, suffix }, content.as_str())
             },
 
-
             '\'' => {
                 self.eat_char()
             },
@@ -418,7 +417,6 @@ impl Lexer<'_> {
     fn eat_hex(&mut self) -> (bool, String) {
         let mut dangling = true;
         let mut content: String = "".into();
-
         while let c @ ('0'..='9' | 'A'..='F' | 'a'..='f') = self.lookahead() {
             dangling = false;
             content.push(c);

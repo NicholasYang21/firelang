@@ -13,6 +13,3 @@ This project is under MIT License
 
 For more information see [LICENSE](./LICENSE)
 
-## Dependence license
-
-(note that the dependence that not listed)
