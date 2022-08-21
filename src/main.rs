@@ -17,5 +17,5 @@ fn main() {
         }
     }
 
-    println!("time use {:?}", SystemTime::now().duration_since(bef_now).expect("反方向的钟").as_millis());
+    println!("time use {:?}", SystemTime::now().duration_since(bef_now).expect("反方向的钟").as_nanos());
 }
