@@ -10,8 +10,6 @@ fn main() {
     loop {
         let token = lexer.next_token();
 
-        println!("{:#?}", token);
-
         if token.kind == TokenKind::Eof {
             break;
         }

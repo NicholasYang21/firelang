@@ -1,12 +1,15 @@
 use anyhow::anyhow;
 use crate::compiler::firelang_lexer::lexer::{Token, TokenKind};
-#[derive(Debug,PartialEq, Eq, PartialOrd, Ord,Clone)]
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
+
 pub enum Type {
     Int,
     Char,
     Float,
     //TODO: Add more type because I am not ensure.
 }
+
 impl TryFrom<Token> for Type {
     type Error = anyhow::Error;
     fn try_from(value: Token) -> Result<Self, Self::Error> {
@@ -45,6 +48,7 @@ pub enum BinaryOperator {
     MultiplyAssign,
     DivideAssign,
 }
+
 impl TryFrom<TokenKind> for BinaryOperator {
     type Error = anyhow::Error;
     fn try_from(token: TokenKind) -> Result<BinaryOperator, Self::Error> {

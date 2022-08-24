@@ -1,4 +1,5 @@
 use UnescapeError::*;
+use std::collections::VecDeque;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum UnescapeError {
@@ -17,18 +18,18 @@ pub enum UnescapeError {
 }
 
 pub fn unescape(input: &str) -> Result<String, UnescapeError> {
-    let mut que = input.chars().collect::<Vec<char>>();
+    let mut que = input.chars().collect::<VecDeque<char>>();
     let mut res: String = "".into();
 
     if input.is_empty() { return Ok(res); }
 
-    while let Some(c) = que.pop() {
+    while let Some(c) = que.pop_front() {
         if c != '\\' {
             res.push(c);
             continue;
         }
 
-        match que.pop() {
+        match que.pop_front() {
             None => return Err(OnlyOneSlashError),
             Some('b') => res.push('\u{0008}'),
             Some('r') => res.push('\r'),
@@ -41,7 +42,7 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
                     return Err(UnclosedUnicode);
                 }
 
-                if que.pop().unwrap() != '{' {
+                if que.pop_front().unwrap() != '{' {
                     return Err(IllegalUnicode);
                 }
 
@@ -49,7 +50,7 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
                 let mut value: u32 = 0;
 
                 loop {
-                    match que.pop() {
+                    match que.pop_front() {
                         None => return Err(UnclosedUnicode),
 
                         Some(x) if x.is_ascii_hexdigit() => {
@@ -82,10 +83,10 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
             },
 
             Some('x') => {
-                let high = que.pop().ok_or(TooShortEscape)?;
+                let high = que.pop_front().ok_or(TooShortEscape)?;
                 let high = high.to_digit(16).ok_or(InvalidCharInHex)?;
 
-                let low = que.pop().ok_or(TooShortEscape)?;
+                let low = que.pop_front().ok_or(TooShortEscape)?;
                 let low = low.to_digit(16).ok_or(InvalidCharInHex)?;
 
                 let val = high * 16 + low;
