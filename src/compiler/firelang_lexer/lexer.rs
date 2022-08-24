@@ -368,7 +368,7 @@ impl Lexer<'_> {
                 self.next();
                 number.push('.');
 
-                if self.lookahead().is_digit(10) {
+                if self.lookahead().is_ascii_digit() {
                     number += &*self.eat_digit().1;
                     match self.lookahead() {
                         'e' | 'E' => {
