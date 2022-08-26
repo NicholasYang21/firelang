@@ -3,6 +3,7 @@ pub struct Parser<'a> {
     lexer : Lexer<'a>,
     prev : Option<Token>
 }
+
 impl Lexer<'_> {
     //TODO: Add funtcions
 }
