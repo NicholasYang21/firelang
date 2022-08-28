@@ -1,9 +1,7 @@
-use crate::compiler::firelang_lexer::lexer::{Lexer, Token};
-pub struct Parser<'a> {
-    lexer : Lexer<'a>,
-    prev : Option<Token>
-}
+use crate::compiler::firelang_lexer::lexer::*;
+use super::ast::token::BinOp;
+use super::ast::node;
 
-impl Lexer<'_> {
-    //TODO: Add funtcions
+struct primaryParser {
+
 }
