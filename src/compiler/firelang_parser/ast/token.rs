@@ -1,3 +1,5 @@
+use crate::compiler::firelang_lexer::lexer::Token;
+
 pub enum BinOp {
     Add,
     Sub,
@@ -20,4 +22,25 @@ pub enum BinOp {
     DivEq,
     LshEq,
     RshEq,
+}
+
+pub enum Literal {
+    Byte(Token),
+    Int16(Token),
+    Int(Token), // int32, default integral type
+    Int64(Token),
+    Int128(Token),
+
+    UByte(Token),
+    UInt16(Token),
+    UInt(Token), // uint32, default unsigned integral type
+    UInt64(Token),
+    UInt128(Token),
+
+    Float(Token),
+    Char(Token),
+    Boolean(Token),
+    Str(Token), // string OR raw string
+
+    Unexpected(String),
 }
