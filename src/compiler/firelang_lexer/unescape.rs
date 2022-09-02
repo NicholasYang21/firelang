@@ -91,7 +91,7 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
 
                 let val = high * 16 + low;
 
-                if !val <= 0x7f {
+                if val > 0x7f {
                     return Err(ValueOutOfHex);
                 }
 

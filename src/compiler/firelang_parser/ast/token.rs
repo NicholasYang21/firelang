@@ -37,7 +37,9 @@ pub enum Literal {
     UInt64(Token),
     UInt128(Token),
 
-    Float(Token),
+    Float(Token), // f32, default floating numeric type
+    Float64(Token),
+
     Char(Token),
     Boolean(Token),
     Str(Token), // string OR raw string
