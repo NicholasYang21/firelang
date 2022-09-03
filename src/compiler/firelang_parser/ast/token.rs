@@ -1,27 +1,38 @@
 use crate::compiler::firelang_lexer::lexer::Token;
 
-pub enum BinOp {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
-    Lsh,
-    Rsh,
-    Lt,
-    Lte,
-    Gt,
-    Gte,
-    Eq,
-    Ne,
-    And,
-    Or,
-    AddEq,
-    SubEq,
-    MulEq,
-    DivEq,
-    LshEq,
-    RshEq,
+pub enum BinaryOp {
+    Add, // +
+    Sub, // -
+    Mul, // *
+    Div, // /
+    Mod, // %
+    Lsh, // <<
+    Rsh, // >>
+    And, // &
+    Or, // |
+    Xor, // ^
+    LogicalAnd, // &&
+    LogicalOr, // ||
+    Lt, // <
+    Lte, // <=
+    Gt, // >
+    Gte, // >=
+    Eq, // ==
+    Ne, // !=
+}
+
+pub enum AssignOp {
+    Assign, // =
+    AddEq, // +=
+    SubEq, // -=
+    MulEq, // *=
+    DivEq, // /=
+    ModEq, // %=
+    AndEq, // &=
+    OrEq, // |=
+    XorEq, // ^=
+    LshEq, // <<=
+    RshEq, // >>=
 }
 
 pub enum Literal {
