@@ -162,7 +162,7 @@ impl Literal {
 }
 
 impl Identifier {
-    fn new(ident: Token) -> Identifier {
+    pub fn new(ident: Token) -> Identifier {
         Identifier {
             ident
         }
@@ -170,7 +170,7 @@ impl Identifier {
 }
 
 impl BinaryExpr {
-    fn new(op: token::BinaryOp, lhs: Primary, rhs: Primary) -> BinaryExpr {
+    pub fn new(op: token::BinaryOp, lhs: Primary, rhs: Primary) -> BinaryExpr {
         BinaryExpr {
             op,
             left: lhs,
