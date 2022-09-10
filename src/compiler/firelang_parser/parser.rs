@@ -56,6 +56,17 @@ impl Parser<'_> {
         }
     }
 
+    fn create_error(&self, msg: String, short: &str, tok: Token) -> Error {
+        Error {
+            msg,
+            short: short.into(),
+            line: self.lex.source.as_str().lines().nth(self.lex.line - 1).unwrap().to_string(),
+            col: tok.column,
+            ln: tok.line,
+            len: tok.content.len()
+        }
+    }
+
     pub fn parse_primary(&mut self) -> Primary {
         if let Some(x) = self.parse_literal() {
             return Primary {
@@ -72,14 +83,11 @@ impl Parser<'_> {
         let x = self.lookahead();
 
         Primary {
-            prim: Box::new(Error {
-                msg: format!("expect <literal> or <identifier>, but there is '{}'", self.lookahead().content),
-                short: "unexpected expression".into(),
-                line: self.lex.source.as_str().lines().nth(self.lex.line - 1).unwrap().to_string(),
-                col: x.column,
-                ln: x.line,
-                len: x.content.len()
-            })
+            prim: Box::new(self.create_error(
+                format!("expected <identifier>, <literal> or <expr>, but there is '{}'", x.content),
+                "unexpected token",
+                    x
+            ))
         }
     }
 }

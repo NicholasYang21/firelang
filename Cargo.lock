@@ -78,6 +78,7 @@ dependencies = [
  "clap",
  "inkwell",
  "unicode-xid",
+ "winapi-util",
 ]
 
 [[package]]
