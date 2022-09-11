@@ -11,7 +11,8 @@ use RawStrError::*;
 /// Parse the whole language sourcefile
 #[derive(Debug, Clone)]
 pub struct Lexer<'a> {
-    pub source: Chars<'a>,
+    pub src: String,
+    source: Chars<'a>,
     prev: char,
     pub line: usize,
     pub column : usize,
@@ -141,7 +142,6 @@ impl Iterator for Lexer<'_> {
 
         self.prev = c.unwrap();
 
-
         self.column += 1;
         if c == Some('\n') {
             self.line += 1;
@@ -154,7 +154,7 @@ impl Iterator for Lexer<'_> {
 impl Lexer<'_> {
     /// Construct a new Lexer
     pub fn new(src: &str) -> Lexer {
-        Lexer { source: src.chars(), prev: EOF, line: 1, column: 0 }
+        Lexer { src: src.into(), source: src.chars(), prev: EOF, line: 1, column: 0 }
     }
 
     /// Get next char without modifying the source code.

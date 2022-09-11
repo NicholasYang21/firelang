@@ -1,10 +1,10 @@
-use std::fmt::format;
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
 use crate::compiler::firelang_parser::ast::node::*;
 
 use super::ast::node::Literal;
 use super::ast::codegen::Expr;
 
+#[derive(Clone)]
 pub struct Parser<'a> {
     lex: Lexer<'a>,
 }
@@ -60,11 +60,18 @@ impl Parser<'_> {
         Error {
             msg,
             short: short.into(),
-            line: self.lex.source.as_str().lines().nth(self.lex.line - 1).unwrap().to_string(),
+            line: self.lex.src.as_str().lines().nth(self.lex.line - 1).unwrap().to_string(),
             col: tok.column,
             ln: tok.line,
             len: tok.content.len()
         }
+    }
+
+    pub fn parse(&mut self) -> Option<Primary> {
+        if self.lookahead().kind == TokenKind::Eof {
+            return None;
+        }
+        Some(self.parse_primary())
     }
 
     pub fn parse_primary(&mut self) -> Primary {
@@ -81,6 +88,8 @@ impl Parser<'_> {
         }
 
         let x = self.lookahead();
+
+        self.next();
 
         Primary {
             prim: Box::new(self.create_error(

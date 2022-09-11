@@ -17,5 +17,5 @@ opt-level = 0
 clap = "*"
 anyhow = "*"
 unicode-xid = "*"
-inkwell = "*"
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm12-0"] }
 winapi-util = "*"

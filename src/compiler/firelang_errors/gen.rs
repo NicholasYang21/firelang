@@ -68,7 +68,7 @@ fn print_tail(short: String, ln: usize, col: usize, len: usize) {
     }
 
     set_color!(console, Color::Red, print!("\x1b[1;31m"));
-    println!(" {short}");
+    println!(" {short}\n");
     reset!(console)
 }
 
