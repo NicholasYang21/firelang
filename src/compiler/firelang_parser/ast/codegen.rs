@@ -1,20 +1,23 @@
 use super::super::super::firelang_errors::gen::gen_error;
 
 use inkwell;
+use inkwell::values::AnyValue;
 
-use super::node;
 use super::node::*;
 
 pub trait Expr {
-    fn codegen(&self) -> Value;
+    fn codegen<'ctx, T>(&self) -> T where T: AnyValue<'ctx>;
 }
 
 impl Expr for Literal {
-    fn codegen(&self) {
+    fn codegen<'ctx, T>(&self) -> T where T: AnyValue<'ctx> {
         let ctx = inkwell::context::Context::create();
+
         match self.val {
             super::token::Literal::Int(tok) => {
-                return ctx.i32_type().const_int(tok.content.parse::<u64>().unwrap(), false);
+                return Box::new(
+                    ctx.i32_type().const_int(tok.content.parse::<u64>().unwrap(),
+                                             true));
             }
             _ => {unimplemented!()}
         }
@@ -22,11 +25,13 @@ impl Expr for Literal {
 }
 
 impl Expr for Identifier {
-
+    fn codegen<'ctx, T> (&self) -> T where T: AnyValue<'ctx> {
+        unimplemented!()
+    }
 }
 
 impl Expr for Error {
-    fn codegen(&self) {
-        gen_error(self);
+    fn codegen<'ctx, T>(&self) -> T where T: AnyValue<'ctx> {
+        gen_error(self)
     }
 }
