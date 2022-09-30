@@ -1,7 +1,6 @@
 use std::io::stdout;
 use std::io::Write;
 use winapi_util::console::{Color, Console, Intense};
-use super::super::firelang_parser::ast::node::Error;
 
 macro_rules! set_color {
     ($console: expr, $color: expr, $other: stmt) => {
@@ -70,13 +69,4 @@ fn print_tail(short: String, ln: usize, col: usize, len: usize) {
     set_color!(console, Color::Red, print!("\x1b[1;31m"));
     println!(" {short}\n");
     reset!(console)
-}
-
-pub fn gen_error(err: &Error) {
-    let (msg, short, line) = (err.msg.clone(), err.short.clone(), err.line.clone());
-    let (ln, col, len) = (err.ln, err.col, err.len);
-
-    print_error(msg);
-    print_line(ln, &line);
-    print_tail(short, ln, col, len);
 }

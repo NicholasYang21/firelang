@@ -109,7 +109,7 @@ pub struct Token {
     pub content: String,
     pub line: usize,
     pub column: usize
-}
+}}
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum LiteralKind {

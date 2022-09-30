@@ -1,6 +1,10 @@
+use std::ops::{BitXor, BitXorAssign};
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
+use crate::compiler::firelang_lexer::lexer::NumBase::Bin;
+use crate::compiler::firelang_lexer::lexer::TokenKind::Eof;
 use crate::compiler::firelang_parser::ast::node::*;
-use crate::compiler::firelang_parser::ast::node_impl::make_lit;
+use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
+use crate::compiler::firelang_parser::ast::token::BinaryOp;
 
 #[derive(Clone)]
 pub struct Parser<'a> {
@@ -18,8 +22,9 @@ impl Parser<'_> {
         self.lex.clone().next_token()
     }
 
-    fn next(&mut self) -> Token {
-        self.lex.next_token()
+    fn next(&mut self) -> Option<Token> {
+        let x = self.lex.next_token();
+        Some(x)
     }
 
     fn eat(&mut self) {
@@ -34,20 +39,121 @@ impl Parser<'_> {
         true
     }
 
-    fn parse_literal(&mut self) -> Option<Expression> {
-        let x = self.lookahead();
+    fn next_op(&mut self) -> Option<BinaryOp> {
+        match self.lookahead().kind {
+            TokenKind::Plus => {
+                self.eat();
 
-        match x.kind {
-            TokenKind::Literal { .. } => { self.eat(); Some(make_lit(x)) },
-            _ => None
-        }
-    }
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::AddEq);
+                }
 
-    fn parse_identifier(&mut self) -> Option<Expression> {
-        let x = self.lookahead();
+                Some(BinaryOp::Add)
+            }
 
-        match x.kind {
-            TokenKind::Ident { .. } => { self.eat(); Some(make_lit(x)) },
+            TokenKind::Minus => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::SubEq);
+                }
+
+                Some(BinaryOp::Sub)
+            }
+
+            TokenKind::Star => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::MulEq);
+                }
+
+                Some(BinaryOp::Mul)
+            }
+
+            TokenKind::Slash => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::DivEq);
+                }
+
+                Some(BinaryOp::Div)
+            }
+
+            TokenKind::Percent => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::ModEq);
+                }
+
+                Some(BinaryOp::Mod)
+            }
+
+            TokenKind::And => {
+                self.eat();
+
+                match self.lookahead().kind {
+                    TokenKind::And => {
+                        self.eat();
+                        Some(BinaryOp::LogicalAnd)
+                    }
+
+                    TokenKind::Equal => {
+                        self.eat();
+                        Some(BinaryOp::AndEq)
+                    }
+
+                    _ => Some(BinaryOp::And)
+                }
+            }
+
+            TokenKind::Or => {
+                self.eat();
+
+                match self.lookahead().kind {
+                    TokenKind::Or => {
+                        self.eat();
+                        Some(BinaryOp::LogicalOr)
+                    }
+
+                    TokenKind::Equal => {
+                        self.eat();
+                        Some(BinaryOp::OrEq)
+                    }
+
+                    _ => Some(BinaryOp::Or)
+                }
+            }
+
+            TokenKind::Caret => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    Some(BinaryOp::XorEq)
+                }
+
+                Some(BinaryOp::Xor)
+            }
+
+            TokenKind::Not => {
+                self.eat();
+                Some(BinaryOp::Not)
+            }
+
+            TokenKind::Le => {
+                self.eat();
+            }
+
+            Eof => None,
+
             _ => None
         }
     }
@@ -56,10 +162,16 @@ impl Parser<'_> {
         if self.lookahead().kind == TokenKind::Eof {
             return None;
         }
-        Some(self.parse_expr())
+        self.parse_expr()
     }
 
     pub fn parse_expr(&mut self) -> Option<Expression> {
+        let x = self.next()?;
 
+        match x.kind {
+            TokenKind::Literal { .. } => Some(make_lit(x)),
+            TokenKind::Ident { .. } => Some(make_ident(x.content)),
+            _ => None
+        }
     }
 }

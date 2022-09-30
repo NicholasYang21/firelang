@@ -9,7 +9,7 @@ use super::node::*;
 use super::token;
 
 
-pub fn make_lit<'a>(tok: Token) -> Expression {
+pub fn make_lit(tok: Token) -> Expression {
     fn check_escape_err(err: &UnescapeError) -> token::Literal {
         match err {
             OnlyOneSlashError =>

@@ -1,5 +1,6 @@
 use crate::compiler::firelang_lexer::lexer::Token;
 
+#[derive(Debug)]
 pub enum BinaryOp {
     Add, // +
     Sub, // -
@@ -11,6 +12,7 @@ pub enum BinaryOp {
     And, // &
     Or, // |
     Xor, // ^
+    Not, // ~
     LogicalAnd, // &&
     LogicalOr, // ||
     Lt, // <
@@ -19,9 +21,6 @@ pub enum BinaryOp {
     Gte, // >=
     Eq, // ==
     Ne, // !=
-}
-
-pub enum AssignOp {
     Assign, // =
     AddEq, // +=
     SubEq, // -=
@@ -35,6 +34,7 @@ pub enum AssignOp {
     RshEq, // >>=
 }
 
+#[derive(Debug)]
 pub enum Literal {
     Byte(Token),
     Int16(Token),
