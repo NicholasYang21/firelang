@@ -1,5 +1,4 @@
 use std::fmt::{Display, Formatter};
-use crate::compiler::firelang_lexer::lexer::Token;
 
 #[derive(Debug)]
 pub enum BinaryOp {
@@ -83,7 +82,7 @@ pub enum Literal {
     Float(f32), // f32, default floating numeric type
     Float64(f64),
 
-    Char(char),
+    Char(String),
     Boolean(bool),
     Str(String), // string OR raw string
 

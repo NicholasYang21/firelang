@@ -67,20 +67,65 @@ pub fn make_lit(tok: Token) -> Expression {
             match (kind, suffix.as_str()) {
                 (Int { .. }, suffix) => {
                     match suffix {
-                        "" | "i32" => { token::Literal::Int(tok) },
-                        "u" | "u32" => { token::Literal::UInt(tok) },
+                        "" | "i32" => {
+                            token::Literal::Int(
+                                tok.content.replace("i32", "").parse::<i32>().unwrap()
+                            )
+                        },
 
-                        "b" => { token::Literal::Byte(tok) },
-                        "u8" => { token::Literal::UByte(tok) },
+                        "u32" => {
+                            token::Literal::UInt(
+                                tok.content.replace("u32", "").parse::<u32>().unwrap()
+                            )
+                        },
 
-                        "i16" => { token::Literal::Int16(tok) },
-                        "u16" => { token::Literal::UInt16(tok) },
+                        "b" => {
+                            token::Literal::Byte(
+                                tok.content.replace("b", "").parse::<i8>().unwrap()
+                            )
+                        },
 
-                        "i64" => { token::Literal::Int64(tok) },
-                        "u64" => { token::Literal::UInt64(tok) },
+                        "u8" => {
+                            token::Literal::UByte(
+                                tok.content.replace("u8", "").parse::<u8>().unwrap()
+                            )
+                        },
 
-                        "i128" => { token::Literal::Int128(tok) },
-                        "u128" => { token::Literal::UInt128(tok) },
+                        "i16" => {
+                            token::Literal::Int16(
+                                tok.content.replace("i16", "").parse::<i16>().unwrap()
+                            )
+                        },
+
+                        "u16" => {
+                            token::Literal::UInt16(
+                                tok.content.replace("u16", "").parse::<u16>().unwrap()
+                            )
+                        },
+
+                        "i64" => {
+                            token::Literal::Int64(
+                                tok.content.replace("i64", "").parse::<i64>().unwrap()
+                            )
+                        },
+
+                        "u64" => {
+                            token::Literal::UInt64(
+                                tok.content.replace("u64", "").parse::<u64>().unwrap()
+                            )
+                        },
+
+                        "i128" => {
+                            token::Literal::Int128(
+                                tok.content.replace("i128", "").parse::<i128>().unwrap()
+                            )
+                        },
+
+                        "u128" => {
+                            token::Literal::UInt128(
+                                tok.content.replace("u128", "").parse::<u128>().unwrap()
+                            )
+                        },
 
                         _ => {
                             token::Literal::Unexpected(
@@ -95,12 +140,16 @@ pub fn make_lit(tok: Token) -> Expression {
                         token::Literal::Unexpected("dangling float number".into())
                     } else {
                         match suffix {
-                            "f32" | "f" | "" => {
-                                token::Literal::Float(tok)
+                            "f32" | "" => {
+                                token::Literal::Float(
+                                    tok.content.replace("f32", "").parse::<f32>().unwrap()
+                                )
                             },
 
                             "f64" => {
-                                token::Literal::Float64(tok)
+                                token::Literal::Float64(
+                                    tok.content.replace("f64", "").parse::<f64>().unwrap()
+                                )
                             },
 
                             _ => token::Literal::Unexpected(
@@ -117,7 +166,7 @@ pub fn make_lit(tok: Token) -> Expression {
                         match err {
                             Some(err) => check_escape_err(err),
 
-                            None => token::Literal::Char(tok)
+                            None => token::Literal::Char(tok.content)
                         }
                     }
                 },
@@ -129,7 +178,7 @@ pub fn make_lit(tok: Token) -> Expression {
                         match err {
                             Some(err) => check_escape_err(err),
 
-                            None => token::Literal::Str(tok)
+                            None => token::Literal::Str(tok.content)
                         }
                     }
                 },
@@ -146,7 +195,7 @@ pub fn make_lit(tok: Token) -> Expression {
                                 ),
                             }
                         },
-                        None => token::Literal::Str(tok),
+                        None => token::Literal::Str(tok.content),
                     }
                 }
             }

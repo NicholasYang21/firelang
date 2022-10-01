@@ -2,8 +2,7 @@ use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
 
 use crate::compiler::firelang_parser::ast::node::*;
 use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
-use crate::compiler::firelang_parser::ast::token;
-use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord};
+use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord, Literal};
 
 #[derive(Clone)]
 pub struct Parser<'a> {
@@ -256,8 +255,16 @@ impl Parser<'_> {
 
             TokenKind::Literal { .. } => make_lit(x),
             TokenKind::Ident => {
-                if x.content == "true" || x.content == "false" {
-                    return Ok(Expression::Literal(token::Literal::Boolean(x)));
+                match x.content.as_str() {
+                    "true" => {
+                        return Ok(Expression::Literal(Literal::Boolean(true)));
+                    }
+
+                    "false" => {
+                        return Ok(Expression::Literal(Literal::Boolean(false)));
+                    }
+
+                    _ => (),
                 }
 
                 if let Ok(x) = KeyWord::try_from(x.content.clone()) {
