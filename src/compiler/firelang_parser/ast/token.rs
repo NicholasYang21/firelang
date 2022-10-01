@@ -68,24 +68,24 @@ impl TryFrom<String> for KeyWord {
 
 #[derive(Debug)]
 pub enum Literal {
-    Byte(Token),
-    Int16(Token),
-    Int(Token), // int32, default integral type
-    Int64(Token),
-    Int128(Token),
+    Byte(i8),
+    Int16(i16),
+    Int(i32), // int32, default integral type
+    Int64(i64),
+    Int128(i128),
 
-    UByte(Token),
-    UInt16(Token),
-    UInt(Token), // uint32, default unsigned integral type
-    UInt64(Token),
-    UInt128(Token),
+    UByte(u8),
+    UInt16(u16),
+    UInt(u32), // uint32, default unsigned integral type
+    UInt64(u64),
+    UInt128(u128),
 
-    Float(Token), // f32, default floating numeric type
-    Float64(Token),
+    Float(f32), // f32, default floating numeric type
+    Float64(f64),
 
-    Char(Token),
-    Boolean(Token),
-    Str(Token), // string OR raw string
+    Char(char),
+    Boolean(bool),
+    Str(String), // string OR raw string
 
     Unexpected(String),
 }
