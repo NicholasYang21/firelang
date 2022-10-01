@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use crate::compiler::firelang_lexer::lexer::Token;
 
 #[derive(Debug)]
@@ -13,6 +14,7 @@ pub enum BinaryOp {
     Or, // |
     Xor, // ^
     Not, // ~
+    LogicalNot, // !
     LogicalAnd, // &&
     LogicalOr, // ||
     Lt, // <
@@ -32,6 +34,36 @@ pub enum BinaryOp {
     XorEq, // ^=
     LshEq, // <<=
     RshEq, // >>=
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum KeyWord {
+    IMM,
+    MUT,
+    IF,
+    ELSE,
+    FOR
+}
+
+impl Display for KeyWord {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(format!("{:?}", self).as_str())
+    }
+}
+
+impl TryFrom<String> for KeyWord {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        match value.as_str() {
+            "imm" => Ok(Self::IMM),
+            "mut" => Ok(Self::MUT),
+            "if" => Ok(Self::IF),
+            "else" => Ok(Self::ELSE),
+            "for" => Ok(Self::FOR),
+            _ => Err("".into())
+        }
+    }
 }
 
 #[derive(Debug)]

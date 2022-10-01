@@ -1,3 +1,4 @@
+use std::fmt::{Formatter};
 use std::str::Chars;
 
 use super::unescape::*;
@@ -22,7 +23,7 @@ pub struct Lexer<'a> {
 pub const EOF: char = '\0';
 
 /// All kinds of tokens in Fire.
-#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub enum TokenKind {
     /// \0
     Eof,
@@ -57,7 +58,7 @@ pub enum TokenKind {
     Literal { kind: LiteralKind, suffix: String },
     /// + (Add)
     Plus,
-    /// - (Minus)
+    /// - (Sub)
     Minus,
     /// * (Mul)
     Star,
@@ -103,13 +104,54 @@ pub enum TokenKind {
     Caret,
 }
 
+impl std::fmt::Debug for TokenKind {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.to_string().as_str())
+    }
+}
+
+impl ToString for TokenKind {
+    fn to_string(&self) -> String {
+        match self {
+            Eof => "EOF",
+            Ident => "<identifier>",
+            Space => "<whitespace>",
+            Literal { .. } => "<literal>",
+            Plus => "'+'",
+            Minus => "'-'",
+            Star => "'*'",
+            Slash => "'/'",
+            Percent => "'%'",
+            Comma => "','",
+            Semicolon => "';'",
+            Dot => "'.'",
+            Colon => "':'",
+            LeftParen => "'('",
+            RightParen => "')'",
+            LeftBracket => "'['",
+            RightBracket => "']'",
+            LeftBrace => "'{'",
+            RightBrace => "'}'",
+            Equal => "'='",
+            Exclamation => "'!'",
+            Not => "'~'",
+            Le => "'<'",
+            Ge => "'>'",
+            And => "'&'",
+            Or => "'|'",
+            Caret => "'^'",
+            _ => ""
+        }.into()
+    }
+}
+
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Token {
     pub kind: TokenKind,
     pub content: String,
     pub line: usize,
     pub column: usize
-}}
+}
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum LiteralKind {
@@ -431,6 +473,8 @@ impl Lexer<'_> {
             && self.lookahead() != '_' {
             return "".into();
         }
+
+        self.next();
 
         let mut result: String = self.next().unwrap().into();
 

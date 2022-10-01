@@ -1,4 +1,4 @@
-use std::io::stdout;
+/*use std::io::stdout;
 use std::io::Write;
 use winapi_util::console::{Color, Console, Intense};
 
@@ -69,4 +69,4 @@ fn print_tail(short: String, ln: usize, col: usize, len: usize) {
     set_color!(console, Color::Red, print!("\x1b[1;31m"));
     println!(" {short}\n");
     reset!(console)
-}
+}*/

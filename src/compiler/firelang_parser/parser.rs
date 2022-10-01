@@ -1,10 +1,9 @@
-use std::ops::{BitXor, BitXorAssign};
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
-use crate::compiler::firelang_lexer::lexer::NumBase::Bin;
-use crate::compiler::firelang_lexer::lexer::TokenKind::Eof;
+
 use crate::compiler::firelang_parser::ast::node::*;
 use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
-use crate::compiler::firelang_parser::ast::token::BinaryOp;
+use crate::compiler::firelang_parser::ast::token;
+use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord};
 
 #[derive(Clone)]
 pub struct Parser<'a> {
@@ -19,27 +18,54 @@ impl Parser<'_> {
     }
 
     fn lookahead(&self) -> Token {
-        self.lex.clone().next_token()
+        self.clone().next().unwrap()
     }
 
     fn next(&mut self) -> Option<Token> {
         let x = self.lex.next_token();
+
+        if x.kind == TokenKind::Space { return self.next(); }
+
         Some(x)
     }
 
     fn eat(&mut self) {
-        self.lex.next_token();
+        self.next().unwrap();
     }
 
-    fn match_tok(&self, s: &TokenKind) -> bool {
-        let mut c = self.lex.clone();
+    fn match_tok(&mut self, s: &TokenKind) -> Result<(), String> {
+        let k = self.lookahead().kind;
 
-        if c.next_token().kind != *s { return false; }
+        if k != *s {
+            return Err(format!(
+            "At line {:?}, col {:?}: Expected {:?}, found {:?}", self.lex.line, self.lex.column, s, k
+        ));
+        }
 
-        true
+        Ok(())
     }
 
-    fn next_op(&mut self) -> Option<BinaryOp> {
+    fn match_keyword(&self, s: &KeyWord) -> Result<(), String> {
+        let k = self.lookahead();
+
+        if let Ok(x) = KeyWord::try_from(k.content.clone()) {
+            if x != *s {
+                return Err(format!(
+                    "At line {:?}, col {:?}: Expected keyword <{}>, found keyword <{}>",
+                    self.lex.line, self.lex.column, s, x
+                ));
+            }
+        } else {
+            return Err(format!(
+                "At line {:?}, col {:?}: Expected keyword <{:?}>, found {:?}",
+                self.lex.line, self.lex.column, s, k
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn next_tok_is_op(&mut self) -> Option<BinaryOp> {
         match self.lookahead().kind {
             TokenKind::Plus => {
                 self.eat();
@@ -137,7 +163,7 @@ impl Parser<'_> {
 
                 if self.lookahead().kind == TokenKind::Equal {
                     self.eat();
-                    Some(BinaryOp::XorEq)
+                    return Some(BinaryOp::XorEq);
                 }
 
                 Some(BinaryOp::Xor)
@@ -150,28 +176,118 @@ impl Parser<'_> {
 
             TokenKind::Le => {
                 self.eat();
+
+                match self.lookahead().kind {
+                    TokenKind::Le => {
+                        self.eat();
+
+                        if self.lookahead().kind == TokenKind::Equal {
+                            self.eat();
+                            return Some(BinaryOp::LshEq);
+                        }
+
+                        Some(BinaryOp::Lsh)
+                    }
+
+                    TokenKind::Equal => {
+                        self.eat();
+                        Some(BinaryOp::Lte)
+                    }
+
+                    _ => Some(BinaryOp::Lt)
+                }
             }
 
-            Eof => None,
+            TokenKind::Ge => {
+                self.eat();
+
+                match self.lookahead().kind {
+                    TokenKind::Ge => {
+                        self.eat();
+
+                        if self.lookahead().kind == TokenKind::Equal {
+                            self.eat();
+                            return Some(BinaryOp::RshEq);
+                        }
+
+                        Some(BinaryOp::Rsh)
+                    }
+
+                    TokenKind::Equal => {
+                        self.eat();
+                        Some(BinaryOp::Gte)
+                    }
+
+                    _ => Some(BinaryOp::Gt)
+                }
+            }
+
+            TokenKind::Exclamation => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Equal {
+                    self.eat();
+                    return Some(BinaryOp::Ne);
+                }
+
+                Some(BinaryOp::LogicalNot)
+            }
+
+            TokenKind::Eof => None,
 
             _ => None
         }
     }
 
-    pub fn parse(&mut self) -> Option<Expression> {
-        if self.lookahead().kind == TokenKind::Eof {
-            return None;
-        }
+    pub fn parse(&mut self) -> Result<Expression, String> {
         self.parse_expr()
     }
 
-    pub fn parse_expr(&mut self) -> Option<Expression> {
-        let x = self.next()?;
+    pub fn parse_expr(&mut self) -> Result<Expression, String> {
+        let x = self.next().unwrap();
 
-        match x.kind {
-            TokenKind::Literal { .. } => Some(make_lit(x)),
-            TokenKind::Ident { .. } => Some(make_ident(x.content)),
-            _ => None
+        let expr = match x.kind {
+            TokenKind::LeftParen => {
+                let x = self.parse_expr()?;
+                self.match_tok(&TokenKind::RightParen)?;
+
+                x
+            },
+
+            TokenKind::Literal { .. } => make_lit(x),
+            TokenKind::Ident => {
+                if x.content == "true" || x.content == "false" {
+                    return Ok(Expression::Literal(token::Literal::Boolean(x)));
+                }
+
+                if let Ok(x) = KeyWord::try_from(x.content.clone()) {
+                    return Err(format!(
+                        "At line {:?}, col {:?}: Unexpected keyword <{:?}>.",
+                        self.lex.line, self.lex.column, x)
+                    )
+                }
+
+                make_ident(x.content)
+            }
+
+            _ => return Err(format!(
+                "At line {:?}, col {:?}: Expected <expression>, found {:?}.",
+                self.lex.line, self.lex.column, x.kind)
+            ),
+        };
+
+        if let Some(op) = self.next_tok_is_op() {
+            self.parse_binary_expr(expr, op)
+        } else {
+            Ok(expr)
         }
+    }
+
+    fn parse_binary_expr(&mut self, expr: Expression, op: BinaryOp) -> Result<Expression, String> {
+        Ok(Expression::Binary {
+            lhs: Box::from(expr),
+            op,
+            rhs: Box::from(self.parse_expr()?),
+        })
     }
 }
