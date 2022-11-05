@@ -44,7 +44,7 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn match_keyword(&self, s: &KeyWord) -> Result<(), String> {
+    fn _match_keyword(&self, s: &KeyWord) -> Result<(), String> {
         let k = self.lookahead();
 
         if let Ok(x) = KeyWord::try_from(k.content.clone()) {
