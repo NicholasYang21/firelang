@@ -334,9 +334,9 @@ impl Parser<'_> {
                 })
             } else {
                 Ok(Expression::Binary {
-                    lhs: Box::from(expr),
+                    lhs: Box::from(temp_rhs),
                     op,
-                    rhs: Box::from(self.parse_expr()?),
+                    rhs: Box::from(expr),
                 })
             }
         }
