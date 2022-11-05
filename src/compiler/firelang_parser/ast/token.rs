@@ -2,37 +2,37 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub enum BinaryOp {
-    Add, // +
-    Sub, // -
-    Mul, // *
-    Div, // /
-    Mod, // %
-    Lsh, // <<
-    Rsh, // >>
-    And, // &
-    Or, // |
-    Xor, // ^
-    Not, // ~
+    Add,        // +
+    Sub,        // -
+    Mul,        // *
+    Div,        // /
+    Mod,        // %
+    Lsh,        // <<
+    Rsh,        // >>
+    And,        // &
+    Or,         // |
+    Xor,        // ^
+    Not,        // ~
     LogicalNot, // !
     LogicalAnd, // &&
-    LogicalOr, // ||
-    Lt, // <
-    Lte, // <=
-    Gt, // >
-    Gte, // >=
-    Eq, // ==
-    Ne, // !=
-    Assign, // =
-    AddEq, // +=
-    SubEq, // -=
-    MulEq, // *=
-    DivEq, // /=
-    ModEq, // %=
-    AndEq, // &=
-    OrEq, // |=
-    XorEq, // ^=
-    LshEq, // <<=
-    RshEq, // >>=
+    LogicalOr,  // ||
+    Lt,         // <
+    Lte,        // <=
+    Gt,         // >
+    Gte,        // >=
+    Eq,         // ==
+    Ne,         // !=
+    Assign,     // =
+    AddEq,      // +=
+    SubEq,      // -=
+    MulEq,      // *=
+    DivEq,      // /=
+    ModEq,      // %=
+    AndEq,      // &=
+    OrEq,       // |=
+    XorEq,      // ^=
+    LshEq,      // <<=
+    RshEq,      // >>=
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -41,7 +41,7 @@ pub enum KeyWord {
     MUT,
     IF,
     ELSE,
-    FOR
+    FOR,
 }
 
 impl Display for KeyWord {
@@ -60,7 +60,7 @@ impl TryFrom<String> for KeyWord {
             "if" => Ok(Self::IF),
             "else" => Ok(Self::ELSE),
             "for" => Ok(Self::FOR),
-            _ => Err("".into())
+            _ => Err("".into()),
         }
     }
 }

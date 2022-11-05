@@ -12,7 +12,7 @@ struct _LLVMGenerator {
 impl _LLVMGenerator {
     pub fn _new() -> Self {
         _LLVMGenerator {
-            ctx: Context::create()
+            ctx: Context::create(),
         }
     }
 

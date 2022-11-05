@@ -1,5 +1,5 @@
-use UnescapeError::*;
 use std::collections::VecDeque;
+use UnescapeError::*;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum UnescapeError {
@@ -21,7 +21,9 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
     let mut que = input.chars().collect::<VecDeque<char>>();
     let mut res: String = "".into();
 
-    if input.is_empty() { return Ok(res); }
+    if input.is_empty() {
+        return Ok(res);
+    }
 
     while let Some(c) = que.pop_front() {
         if c != '\\' {
@@ -62,7 +64,7 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
 
                             value *= 16;
                             value += x.to_digit(16).unwrap();
-                        },
+                        }
 
                         Some('}') => {
                             if value > 0x10FFFF {
@@ -75,12 +77,12 @@ pub fn unescape(input: &str) -> Result<String, UnescapeError> {
 
                             res.push(char::from_u32(value).unwrap());
                             break;
-                        },
+                        }
 
-                        _ => { return Err(InvalidCharInUnicode) },
+                        _ => return Err(InvalidCharInUnicode),
                     }
                 }
-            },
+            }
 
             Some('x') => {
                 let high = que.pop_front().ok_or(TooShortEscape)?;

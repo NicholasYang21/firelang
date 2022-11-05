@@ -1,7 +1,7 @@
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
 
-use crate::compiler::firelang_parser::ast::node::*;
 use crate::compiler::firelang_parser::ast::node::Expression::Literal;
+use crate::compiler::firelang_parser::ast::node::*;
 use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
 use crate::compiler::firelang_parser::ast::token;
 use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord};
@@ -13,9 +13,7 @@ pub struct Parser<'a> {
 
 impl Parser<'_> {
     pub fn new(lex: Lexer) -> Parser {
-        Parser {
-            lex
-        }
+        Parser { lex }
     }
 
     fn lookahead(&self) -> Token {
@@ -25,7 +23,9 @@ impl Parser<'_> {
     fn next(&mut self) -> Option<Token> {
         let x = self.lex.next_token();
 
-        if x.kind == TokenKind::Space { return self.next(); }
+        if x.kind == TokenKind::Space {
+            return self.next();
+        }
 
         Some(x)
     }
@@ -39,8 +39,9 @@ impl Parser<'_> {
 
         if k != *s {
             return Err(format!(
-            "At line {:?}, col {:?}: Expected {:?}, found {:?}", self.lex.line, self.lex.column, s, k
-        ));
+                "At line {:?}, col {:?}: Expected {:?}, found {:?}",
+                self.lex.line, self.lex.column, s, k
+            ));
         }
 
         Ok(())
@@ -137,7 +138,7 @@ impl Parser<'_> {
                         Some(BinaryOp::AndEq)
                     }
 
-                    _ => Some(BinaryOp::And)
+                    _ => Some(BinaryOp::And),
                 }
             }
 
@@ -155,7 +156,7 @@ impl Parser<'_> {
                         Some(BinaryOp::OrEq)
                     }
 
-                    _ => Some(BinaryOp::Or)
+                    _ => Some(BinaryOp::Or),
                 }
             }
 
@@ -195,7 +196,7 @@ impl Parser<'_> {
                         Some(BinaryOp::Lte)
                     }
 
-                    _ => Some(BinaryOp::Lt)
+                    _ => Some(BinaryOp::Lt),
                 }
             }
 
@@ -219,7 +220,7 @@ impl Parser<'_> {
                         Some(BinaryOp::Gte)
                     }
 
-                    _ => Some(BinaryOp::Gt)
+                    _ => Some(BinaryOp::Gt),
                 }
             }
 
@@ -236,7 +237,7 @@ impl Parser<'_> {
 
             TokenKind::Eof => None,
 
-            _ => None
+            _ => None,
         }
     }
 
@@ -253,28 +254,30 @@ impl Parser<'_> {
                 self.match_tok(&TokenKind::RightParen)?;
 
                 x
-            },
+            }
 
             TokenKind::Literal { .. } => make_lit(x),
             TokenKind::Ident => {
                 if let Ok(x) = KeyWord::try_from(x.content.clone()) {
                     return Err(format!(
                         "At line {:?}, col {:?}: Unexpected keyword <{:?}>.",
-                        self.lex.line, self.lex.column, x)
-                    )
+                        self.lex.line, self.lex.column, x
+                    ));
                 }
 
                 match x.content.as_str() {
                     "true" => Literal(token::Literal::Boolean(true)),
                     "false" => Literal(token::Literal::Boolean(false)),
-                    _ => make_ident(x.content)
+                    _ => make_ident(x.content),
                 }
             }
 
-            _ => return Err(format!(
-                "At line {:?}, col {:?}: Expected <expression>, found {:?}.",
-                self.lex.line, self.lex.column, x.kind)
-            ),
+            _ => {
+                return Err(format!(
+                    "At line {:?}, col {:?}: Expected <expression>, found {:?}.",
+                    self.lex.line, self.lex.column, x.kind
+                ))
+            }
         };
 
         if let Some(op) = self.next_tok_is_op() {

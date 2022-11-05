@@ -9,7 +9,7 @@ pub enum Expression {
     Binary {
         lhs: Box<Expression>,
         op: BinaryOp,
-        rhs: Box<Expression>
+        rhs: Box<Expression>,
     },
 
     Ident(String),

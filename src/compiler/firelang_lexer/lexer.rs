@@ -1,12 +1,12 @@
-use std::fmt::{Formatter};
+use std::fmt::Formatter;
 use std::str::Chars;
 
 use super::unescape::*;
 
-use TokenKind::*;
-use NumBase::*;
 use LiteralKind::*;
+use NumBase::*;
 use RawStrError::*;
+use TokenKind::*;
 
 /// Lexer Struct
 /// Parse the whole language sourcefile
@@ -16,7 +16,7 @@ pub struct Lexer<'a> {
     source: Chars<'a>,
     prev: char,
     pub line: usize,
-    pub column : usize,
+    pub column: usize,
 }
 
 /// The end of file.
@@ -140,8 +140,9 @@ impl ToString for TokenKind {
             And => "'&'",
             Or => "'|'",
             Caret => "'^'",
-            _ => ""
-        }.into()
+            _ => "",
+        }
+        .into()
     }
 }
 
@@ -150,20 +151,33 @@ pub struct Token {
     pub kind: TokenKind,
     pub content: String,
     pub line: usize,
-    pub column: usize
+    pub column: usize,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum LiteralKind {
     /// 0xFFC66D, 0o1234567, 0b1010001010
-    Int { base: NumBase, dangling: bool },
+    Int {
+        base: NumBase,
+        dangling: bool,
+    },
     /// 0.12345, 1e10, 1e-10, 1e+10
-    Float { dangling: bool },
+    Float {
+        dangling: bool,
+    },
     /// 'a', '\n', '\x1b', '\u{1F600}'
-    Char { unclose: bool, err: Option<UnescapeError> },
+    Char {
+        unclose: bool,
+        err: Option<UnescapeError>,
+    },
     /// "a string", "string with \n", "\x1b[33m STRING!", "\u{58a8}\u{6c34}", "中文"
-    Str { unclose: bool, err: Option<UnescapeError> },
-    RawStr { err: Option<RawStrError> }
+    Str {
+        unclose: bool,
+        err: Option<UnescapeError>,
+    },
+    RawStr {
+        err: Option<RawStrError>,
+    },
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
@@ -174,7 +188,10 @@ pub enum RawStrError {
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub enum NumBase {
-    Hex, Oct, Bin, Dec
+    Hex,
+    Oct,
+    Bin,
+    Dec,
 }
 
 impl Iterator for Lexer<'_> {
@@ -196,7 +213,13 @@ impl Iterator for Lexer<'_> {
 impl Lexer<'_> {
     /// Construct a new Lexer
     pub fn new(src: &str) -> Lexer {
-        Lexer { src: src.into(), source: src.chars(), prev: EOF, line: 1, column: 0 }
+        Lexer {
+            src: src.into(),
+            source: src.chars(),
+            prev: EOF,
+            line: 1,
+            column: 0,
+        }
     }
 
     /// Get next char without modifying the source code.
@@ -225,18 +248,14 @@ impl Lexer<'_> {
         let first = self.next().unwrap();
 
         match first {
-            EOF => { self.make_token(Eof, "End of file.") }
+            EOF => self.make_token(Eof, "End of file."),
 
-            c if c.is_whitespace() => {
-                self.whitespace()
-            }
+            c if c.is_whitespace() => self.whitespace(),
 
-            '/' => {
-                match self.lookahead() {
-                    '/' => self.line_comment(),
-                    '*' => self.block_comment(),
-                    _ => self.make_token(Slash, "/")
-                }
+            '/' => match self.lookahead() {
+                '/' => self.line_comment(),
+                '*' => self.block_comment(),
+                _ => self.make_token(Slash, "/"),
             },
 
             'r' => {
@@ -247,23 +266,17 @@ impl Lexer<'_> {
                 self.ident()
             }
 
-            c if unicode_xid::UnicodeXID::is_xid_start(c) || c == '_' => {
-                self.ident()
-            },
+            c if unicode_xid::UnicodeXID::is_xid_start(c) || c == '_' => self.ident(),
 
             c @ '0'..='9' => {
                 let (kind, content) = self.number(c);
                 let suffix = self.get_suffix();
                 self.make_token(Literal { kind, suffix }, content.as_str())
-            },
+            }
 
-            '\'' => {
-                self.eat_char()
-            },
+            '\'' => self.eat_char(),
 
-            '"' => {
-                self.eat_str()
-            },
+            '"' => self.eat_str(),
 
             ',' => self.make_token(Comma, ","),
             ';' => self.make_token(Semicolon, ";"),
@@ -295,8 +308,10 @@ impl Lexer<'_> {
     #[inline]
     fn make_token(&self, kind: TokenKind, content: &str) -> Token {
         Token {
-            kind, content: content.into(),
-            line: self.line, column: self.column
+            kind,
+            content: content.into(),
+            line: self.line,
+            column: self.column,
         }
     }
 
@@ -326,13 +341,15 @@ impl Lexer<'_> {
             match x {
                 '/' if self.lookahead() == '*' => {
                     d += 1;
-                },
+                }
 
                 '*' if self.lookahead() == '/' => {
                     d -= 1;
                     self.next();
-                    if d == 0 { break; }
-                },
+                    if d == 0 {
+                        break;
+                    }
+                }
 
                 _ => (),
             }
@@ -342,13 +359,16 @@ impl Lexer<'_> {
     }
 
     fn ident(&mut self) -> Token {
-        let mut c : String = self.before().into();
+        let mut c: String = self.before().into();
 
         while unicode_xid::UnicodeXID::is_xid_continue(self.lookahead()) {
             // unexpected EOF
-            c.push(self.next()
-                .unwrap_or_else(||
-                    panic!("Error : Unexpected EOF at line {} column {}", self.line, self.column)));
+            c.push(self.next().unwrap_or_else(|| {
+                panic!(
+                    "Error : Unexpected EOF at line {} column {}",
+                    self.line, self.column
+                )
+            }));
         }
 
         self.make_token(Ident, c.as_str())
@@ -365,14 +385,14 @@ impl Lexer<'_> {
                     number.push('b');
                     self.next();
                     self.eat_digit()
-                },
+                }
 
                 'o' => {
                     base = Oct;
                     number.push('o');
                     self.next();
                     self.eat_digit()
-                },
+                }
 
                 'x' => {
                     base = Hex;
@@ -387,20 +407,37 @@ impl Lexer<'_> {
                 }
 
                 _ => {
-                    return (Int { base: Dec, dangling: false }, "0".into());
+                    return (
+                        Int {
+                            base: Dec,
+                            dangling: false,
+                        },
+                        "0".into(),
+                    );
                 }
             };
 
             if empty {
-                return (Int { base, dangling: true }, content);
+                return (
+                    Int {
+                        base,
+                        dangling: true,
+                    },
+                    content,
+                );
             }
 
             let t = self.lookahead();
 
             if t != '.' && t != 'e' && t != 'E' {
-                return (Int { base, dangling: false }, number + &*content);
+                return (
+                    Int {
+                        base,
+                        dangling: false,
+                    },
+                    number + &*content,
+                );
             }
-
         } else {
             number += &*self.eat_digit().1;
         }
@@ -422,11 +459,13 @@ impl Lexer<'_> {
                             number += &*tuple.1;
 
                             (Float { dangling }, number)
-                        },
-                        _ => { (Float { dangling: false }, number) },
+                        }
+                        _ => (Float { dangling: false }, number),
                     }
-                } else { (Float { dangling: true }, number) }
-            },
+                } else {
+                    (Float { dangling: true }, number)
+                }
+            }
 
             'e' | 'E' => {
                 number.push(self.next().unwrap());
@@ -437,9 +476,15 @@ impl Lexer<'_> {
                 number += &*tuple.1;
 
                 (Float { dangling }, number)
-            },
+            }
 
-            _ => { (Int {base, dangling: false}, number) },
+            _ => (
+                Int {
+                    base,
+                    dangling: false,
+                },
+                number,
+            ),
         }
     }
 
@@ -469,8 +514,7 @@ impl Lexer<'_> {
     }
 
     fn get_suffix(&mut self) -> String {
-        if !unicode_xid::UnicodeXID::is_xid_start(self.lookahead())
-            && self.lookahead() != '_' {
+        if !unicode_xid::UnicodeXID::is_xid_start(self.lookahead()) && self.lookahead() != '_' {
             return "".into();
         }
 
@@ -518,9 +562,10 @@ impl Lexer<'_> {
             return self.make_token(
                 Literal {
                     kind: Char { unclose, err: None },
-                    suffix: "".into()
+                    suffix: "".into(),
                 },
-                content.as_str());
+                content.as_str(),
+            );
         }
 
         if unescape(content.as_str()).is_err() {
@@ -530,10 +575,10 @@ impl Lexer<'_> {
             return self.make_token(
                 Literal {
                     kind: Char { unclose, err },
-                    suffix: "".into()
+                    suffix: "".into(),
                 },
-                content.as_str()
-            )
+                content.as_str(),
+            );
         }
 
         self.next();
@@ -541,9 +586,9 @@ impl Lexer<'_> {
         self.make_token(
             Literal {
                 kind: Char { unclose, err: None },
-                suffix: "".into()
+                suffix: "".into(),
             },
-            unescape(content.as_str()).unwrap().as_str()
+            unescape(content.as_str()).unwrap().as_str(),
         )
     }
 
@@ -564,9 +609,10 @@ impl Lexer<'_> {
             return self.make_token(
                 Literal {
                     kind: Str { unclose, err: None },
-                    suffix: "".into()
+                    suffix: "".into(),
                 },
-                content.as_str());
+                content.as_str(),
+            );
         }
 
         if unescape(content.as_str()).is_err() {
@@ -576,10 +622,10 @@ impl Lexer<'_> {
             return self.make_token(
                 Literal {
                     kind: Str { unclose, err },
-                    suffix: "".into()
+                    suffix: "".into(),
                 },
-                content.as_str()
-            )
+                content.as_str(),
+            );
         }
 
         self.next();
@@ -587,20 +633,21 @@ impl Lexer<'_> {
         self.make_token(
             Literal {
                 kind: Str { unclose, err: None },
-                suffix: "".into()
+                suffix: "".into(),
             },
-            unescape(content.as_str()).unwrap().as_str()
+            unescape(content.as_str()).unwrap().as_str(),
         )
     }
 
     fn eat_raw_str(&mut self) -> Token {
         if self.lookahead() != '(' {
             let mut res: String = "".into();
-            let literal =
-              Literal {
-                  kind: RawStr { err: Some(UncloseParen) },
-                  suffix: "".into()
-              };
+            let literal = Literal {
+                kind: RawStr {
+                    err: Some(UncloseParen),
+                },
+                suffix: "".into(),
+            };
 
             res.push(self.lookahead());
             self.next();
@@ -631,28 +678,32 @@ impl Lexer<'_> {
                     } else {
                         res.push(')');
                     }
-                },
+                }
 
                 '"' => {
                     self.next();
                     return self.make_token(
                         Literal {
-                            kind: RawStr { err: Some(UncloseParen) },
-                            suffix: "".into()
+                            kind: RawStr {
+                                err: Some(UncloseParen),
+                            },
+                            suffix: "".into(),
                         },
-                        ""
-                    )
+                        "",
+                    );
                 }
 
                 EOF => {
                     return self.make_token(
                         Literal {
-                            kind: RawStr { err: Some(UncloseString) },
-                            suffix: "".into()
+                            kind: RawStr {
+                                err: Some(UncloseString),
+                            },
+                            suffix: "".into(),
                         },
-                        ""
+                        "",
                     )
-                },
+                }
 
                 x => {
                     res.push(x);
@@ -665,9 +716,9 @@ impl Lexer<'_> {
         self.make_token(
             Literal {
                 kind: RawStr { err: None },
-                suffix: "".into()
+                suffix: "".into(),
             },
-            res.as_str()
+            res.as_str(),
         )
     }
 }
