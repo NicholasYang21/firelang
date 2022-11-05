@@ -1,8 +1,10 @@
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
 
 use crate::compiler::firelang_parser::ast::node::*;
+use crate::compiler::firelang_parser::ast::node::Expression::Literal;
 use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
-use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord, Literal};
+use crate::compiler::firelang_parser::ast::token;
+use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord};
 
 #[derive(Clone)]
 pub struct Parser<'a> {
@@ -255,18 +257,6 @@ impl Parser<'_> {
 
             TokenKind::Literal { .. } => make_lit(x),
             TokenKind::Ident => {
-                match x.content.as_str() {
-                    "true" => {
-                        return Ok(Expression::Literal(Literal::Boolean(true)));
-                    }
-
-                    "false" => {
-                        return Ok(Expression::Literal(Literal::Boolean(false)));
-                    }
-
-                    _ => (),
-                }
-
                 if let Ok(x) = KeyWord::try_from(x.content.clone()) {
                     return Err(format!(
                         "At line {:?}, col {:?}: Unexpected keyword <{:?}>.",
@@ -274,7 +264,11 @@ impl Parser<'_> {
                     )
                 }
 
-                make_ident(x.content)
+                match x.content.as_str() {
+                    "true" => Literal(token::Literal::Boolean(true)),
+                    "false" => Literal(token::Literal::Boolean(false)),
+                    _ => make_ident(x.content)
+                }
             }
 
             _ => return Err(format!(
