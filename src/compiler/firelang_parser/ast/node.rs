@@ -2,7 +2,7 @@ use crate::compiler::firelang_parser::ast::token::Literal;
 
 use super::token::BinaryOp;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Literal(Literal),
 

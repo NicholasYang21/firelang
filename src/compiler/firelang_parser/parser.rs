@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
 
 use crate::compiler::firelang_parser::ast::node::Expression::Literal;
@@ -288,10 +289,62 @@ impl Parser<'_> {
     }
 
     fn parse_binary_expr(&mut self, expr: Expression, op: BinaryOp) -> Result<Expression, String> {
+        let temp_rhs = self.parse_expr()?;
+
+        let precedence: HashMap<BinaryOp, i32> = vec![
+            (BinaryOp::OrEq, 0),
+            (BinaryOp::AndEq, 0),
+            (BinaryOp::XorEq, 0),
+            (BinaryOp::LshEq, 1),
+            (BinaryOp::RshEq, 1),
+            (BinaryOp::AddEq, 2),
+            (BinaryOp::SubEq, 2),
+            (BinaryOp::MulEq, 3),
+            (BinaryOp::DivEq, 3),
+            (BinaryOp::ModEq, 3),
+            (BinaryOp::Assign, 4),
+            (BinaryOp::LogicalOr, 5),
+            (BinaryOp::LogicalAnd, 6),
+            (BinaryOp::LogicalNot, 6),
+            (BinaryOp::Lt, 7),
+            (BinaryOp::Lte, 7),
+            (BinaryOp::Gt, 7),
+            (BinaryOp::Gte, 7),
+            (BinaryOp::Eq, 8),
+            (BinaryOp::Ne, 8),
+            (BinaryOp::Or, 9),
+            (BinaryOp::Xor, 10),
+            (BinaryOp::And, 11),
+            (BinaryOp::Not, 11),
+            (BinaryOp::Lsh, 12),
+            (BinaryOp::Rsh, 12),
+            (BinaryOp::Add, 13),
+            (BinaryOp::Sub, 13),
+            (BinaryOp::Mul, 14),
+            (BinaryOp::Div, 14),
+            (BinaryOp::Mod, 14),
+        ].into_iter().collect();
+
+        if let Expression::Binary { lhs: _, op: op2, rhs: _} = &temp_rhs {
+            return if precedence[op2] < precedence[&op] {
+                Ok(Expression::Binary {
+                    lhs: Box::from(expr),
+                    op,
+                    rhs: Box::from(temp_rhs),
+                })
+            } else {
+                Ok(Expression::Binary {
+                    lhs: Box::from(expr),
+                    op,
+                    rhs: Box::from(self.parse_expr()?),
+                })
+            }
+        }
+
         Ok(Expression::Binary {
             lhs: Box::from(expr),
             op,
-            rhs: Box::from(self.parse_expr()?),
+            rhs: Box::from(temp_rhs),
         })
     }
 }
