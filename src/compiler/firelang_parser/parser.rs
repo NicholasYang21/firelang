@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
+use std::collections::HashMap;
 
 use crate::compiler::firelang_parser::ast::node::Expression::Literal;
 use crate::compiler::firelang_parser::ast::node::*;
@@ -26,6 +26,10 @@ impl Parser<'_> {
 
         if x.kind == TokenKind::Space {
             return self.next();
+        }
+
+        if x.kind == TokenKind::Eof {
+            return None;
         }
 
         Some(x)
@@ -246,8 +250,43 @@ impl Parser<'_> {
         self.parse_expr()
     }
 
+    fn parse_literal(&mut self) -> Result<Expression, String> {
+        if let Some(x) = self.next() {
+            if let TokenKind::Literal { .. } = x.kind {
+                return Ok(make_lit(x));
+            }
+        }
+        Err("Expect <literal> but there is EOF.".into())
+    }
+
+    fn parse_paren(&mut self) -> Result<Expression, String> {
+        self.eat();
+        let expr = self.parse_expr()?;
+
+        if self.lookahead().kind == TokenKind::RightParen {
+            return Ok(expr);
+        }
+
+        Err("Unexpected unclosed '('.".into())
+    }
+
+    fn parse_ident(&mut self) -> Result<Expression, String> {
+        unimplemented!()
+    }
+
+    pub fn parse_primary(&mut self) -> Result<Expression, String> {
+        unimplemented!()
+    }
+
     pub fn parse_expr(&mut self) -> Result<Expression, String> {
-        let x = self.next().unwrap();
+        let x = self.next();
+
+        if x != None {
+        } else {
+            return Err("Error: unexpected EOF.".into());
+        }
+
+        let x = x.unwrap();
 
         let expr = match x.kind {
             TokenKind::LeftParen => {
@@ -323,9 +362,16 @@ impl Parser<'_> {
             (BinaryOp::Mul, 14),
             (BinaryOp::Div, 14),
             (BinaryOp::Mod, 14),
-        ].into_iter().collect();
+        ]
+        .into_iter()
+        .collect();
 
-        if let Expression::Binary { lhs: _, op: op2, rhs: _} = &temp_rhs {
+        if let Expression::Binary {
+            lhs: _,
+            op: op2,
+            rhs: _,
+        } = &temp_rhs
+        {
             return if precedence[op2] < precedence[&op] {
                 Ok(Expression::Binary {
                     lhs: Box::from(expr),
@@ -338,7 +384,7 @@ impl Parser<'_> {
                     op,
                     rhs: Box::from(expr),
                 })
-            }
+            };
         }
 
         Ok(Expression::Binary {
