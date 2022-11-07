@@ -46,7 +46,7 @@ static PRECEDENCE: Lazy<HashMap<BinaryOp, i32>> = Lazy::new(|| {
         (BinaryOp::Mod, 14),
     ]
     .into_iter()
-    .collect::<HashMap<BinaryOp, i32>>()
+    .collect()
 });
 
 impl Parser<'_> {
