@@ -87,8 +87,8 @@ dependencies = [
  "anyhow",
  "clap",
  "inkwell",
+ "once_cell",
  "unicode-xid",
- "winapi-util",
 ]
 
 [[package]]

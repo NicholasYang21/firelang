@@ -1,16 +1,53 @@
 use crate::compiler::firelang_lexer::lexer::{Lexer, Token, TokenKind};
+use once_cell::sync::Lazy;
 use std::collections::HashMap;
 
-use crate::compiler::firelang_parser::ast::node::Expression::Literal;
 use crate::compiler::firelang_parser::ast::node::*;
 use crate::compiler::firelang_parser::ast::node_impl::{make_ident, make_lit};
-use crate::compiler::firelang_parser::ast::token;
 use crate::compiler::firelang_parser::ast::token::{BinaryOp, KeyWord};
 
 #[derive(Clone)]
 pub struct Parser<'a> {
     lex: Lexer<'a>,
 }
+
+static PRECEDENCE: Lazy<HashMap<BinaryOp, i32>> = Lazy::new(|| {
+    vec![
+        (BinaryOp::OrEq, 0),
+        (BinaryOp::AndEq, 0),
+        (BinaryOp::XorEq, 0),
+        (BinaryOp::LshEq, 1),
+        (BinaryOp::RshEq, 1),
+        (BinaryOp::AddEq, 2),
+        (BinaryOp::SubEq, 2),
+        (BinaryOp::MulEq, 3),
+        (BinaryOp::DivEq, 3),
+        (BinaryOp::ModEq, 3),
+        (BinaryOp::Assign, 4),
+        (BinaryOp::LogicalOr, 5),
+        (BinaryOp::LogicalAnd, 6),
+        (BinaryOp::LogicalNot, 6),
+        (BinaryOp::Lt, 7),
+        (BinaryOp::Lte, 7),
+        (BinaryOp::Gt, 7),
+        (BinaryOp::Gte, 7),
+        (BinaryOp::Eq, 8),
+        (BinaryOp::Ne, 8),
+        (BinaryOp::Or, 9),
+        (BinaryOp::Xor, 10),
+        (BinaryOp::And, 11),
+        (BinaryOp::Not, 11),
+        (BinaryOp::Lsh, 12),
+        (BinaryOp::Rsh, 12),
+        (BinaryOp::Add, 13),
+        (BinaryOp::Sub, 13),
+        (BinaryOp::Mul, 14),
+        (BinaryOp::Div, 14),
+        (BinaryOp::Mod, 14),
+    ]
+    .into_iter()
+    .collect::<HashMap<BinaryOp, i32>>()
+});
 
 impl Parser<'_> {
     pub fn new(lex: Lexer) -> Parser {
@@ -28,10 +65,6 @@ impl Parser<'_> {
             return self.next();
         }
 
-        if x.kind == TokenKind::Eof {
-            return None;
-        }
-
         Some(x)
     }
 
@@ -39,7 +72,7 @@ impl Parser<'_> {
         self.next().unwrap();
     }
 
-    fn match_tok(&mut self, s: &TokenKind) -> Result<(), String> {
+    fn _match_tok(&mut self, s: &TokenKind) -> Result<(), String> {
         let k = self.lookahead().kind;
 
         if k != *s {
@@ -294,9 +327,9 @@ impl Parser<'_> {
                 if self.lookahead().kind == TokenKind::RightParen {
                     break;
                 }
-                
+
                 if self.lookahead().kind != TokenKind::Comma {
-                    return Err("Error: expected a ',' after the argument".into())
+                    return Err("Error: expected a ',' after the argument".into());
                 }
             }
         }
@@ -319,73 +352,55 @@ impl Parser<'_> {
     }
 
     pub fn parse_expr(&mut self) -> Result<Expression, String> {
-        unimplemented!()
+        let lhs = self.parse_primary();
+        lhs.as_ref()?;
+
+        self.parse_binary_expr(0, lhs.unwrap())
     }
 
-    fn parse_binary_expr(&mut self, expr: Expression, op: BinaryOp) -> Result<Expression, String> {
-        let temp_rhs = self.parse_expr()?;
+    fn parse_binary_expr(&mut self, in_p: i32, mut lhs: Expression) -> Result<Expression, String> {
+        loop {
+            let tok = self.next_tok_is_op();
+            let p = {
+                if let Some(..) = tok {
+                    PRECEDENCE[&tok.clone().unwrap()]
+                } else {
+                    -1
+                }
+            };
 
-        let precedence: HashMap<BinaryOp, i32> = vec![
-            (BinaryOp::OrEq, 0),
-            (BinaryOp::AndEq, 0),
-            (BinaryOp::XorEq, 0),
-            (BinaryOp::LshEq, 1),
-            (BinaryOp::RshEq, 1),
-            (BinaryOp::AddEq, 2),
-            (BinaryOp::SubEq, 2),
-            (BinaryOp::MulEq, 3),
-            (BinaryOp::DivEq, 3),
-            (BinaryOp::ModEq, 3),
-            (BinaryOp::Assign, 4),
-            (BinaryOp::LogicalOr, 5),
-            (BinaryOp::LogicalAnd, 6),
-            (BinaryOp::LogicalNot, 6),
-            (BinaryOp::Lt, 7),
-            (BinaryOp::Lte, 7),
-            (BinaryOp::Gt, 7),
-            (BinaryOp::Gte, 7),
-            (BinaryOp::Eq, 8),
-            (BinaryOp::Ne, 8),
-            (BinaryOp::Or, 9),
-            (BinaryOp::Xor, 10),
-            (BinaryOp::And, 11),
-            (BinaryOp::Not, 11),
-            (BinaryOp::Lsh, 12),
-            (BinaryOp::Rsh, 12),
-            (BinaryOp::Add, 13),
-            (BinaryOp::Sub, 13),
-            (BinaryOp::Mul, 14),
-            (BinaryOp::Div, 14),
-            (BinaryOp::Mod, 14),
-        ]
-        .into_iter()
-        .collect();
+            if p < in_p {
+                return Ok(lhs);
+            }
 
-        if let Expression::Binary {
-            lhs: _,
-            op: op2,
-            rhs: _,
-        } = &temp_rhs
-        {
-            return if precedence[op2] < precedence[&op] {
-                Ok(Expression::Binary {
-                    lhs: Box::from(expr),
-                    op,
-                    rhs: Box::from(temp_rhs),
-                })
-            } else {
-                Ok(Expression::Binary {
-                    lhs: Box::from(temp_rhs),
-                    op,
-                    rhs: Box::from(expr),
-                })
+            let mut rhs = self.parse_primary();
+            if rhs.is_err() {
+                return Err(format!(
+                    "Error: expect <literal>, <identifier> or '(' after operator. {:#?}",
+                    rhs
+                ));
+            }
+
+            let p2 = {
+                let temp = self.clone().next_tok_is_op();
+
+                if let Some(..) = temp {
+                    PRECEDENCE[&temp.unwrap()]
+                } else {
+                    -1
+                }
+            };
+
+            if p < p2 {
+                rhs = self.parse_binary_expr(in_p + 1, rhs.unwrap());
+                rhs.as_ref()?;
+            }
+
+            lhs = Expression::Binary {
+                lhs: Box::new(lhs),
+                op: tok.unwrap(),
+                rhs: Box::new(rhs.unwrap()),
             };
         }
-
-        Ok(Expression::Binary {
-            lhs: Box::from(expr),
-            op,
-            rhs: Box::from(temp_rhs),
-        })
     }
 }
