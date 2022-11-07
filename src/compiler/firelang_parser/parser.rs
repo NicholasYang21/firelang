@@ -256,7 +256,8 @@ impl Parser<'_> {
                 return Ok(make_lit(x));
             }
         }
-        Err("Expect <literal> but there is EOF.".into())
+
+        Err("Error: Expect <literal> but there is EOF.".into())
     }
 
     fn parse_paren(&mut self) -> Result<Expression, String> {
@@ -267,64 +268,58 @@ impl Parser<'_> {
             return Ok(expr);
         }
 
-        Err("Unexpected unclosed '('.".into())
+        Err("Error: Unclosed '('.".into())
     }
 
-    fn parse_ident(&mut self) -> Result<Expression, String> {
-        unimplemented!()
+    fn parse_ident_or_call(&mut self) -> Result<Expression, String> {
+        let ident: Expression;
+        let mut args: Vec<Expression> = Vec::new();
+
+        let x = self.next().unwrap();
+        ident = make_ident(x.content.clone());
+
+        if self.lookahead().kind != TokenKind::LeftParen {
+            return Ok(ident);
+        }
+
+        self.eat();
+        if self.lookahead().kind != TokenKind::RightParen {
+            loop {
+                if let Ok(arg) = self.parse_expr() {
+                    args.push(arg);
+                } else {
+                    return Err("Error: arguments for a function must be an expression.".into());
+                }
+
+                if self.lookahead().kind == TokenKind::RightParen {
+                    break;
+                }
+                
+                if self.lookahead().kind != TokenKind::Comma {
+                    return Err("Error: expected a ',' after the argument".into())
+                }
+            }
+        }
+
+        self.eat();
+
+        Ok(Expression::FuncCall {
+            ident: x.content,
+            args,
+        })
     }
 
     pub fn parse_primary(&mut self) -> Result<Expression, String> {
-        unimplemented!()
+        match self.lookahead().kind {
+            TokenKind::Literal { .. } => self.parse_literal(),
+            TokenKind::Ident { .. } => self.parse_ident_or_call(),
+            TokenKind::LeftParen => self.parse_paren(),
+            _ => Err("Error: unexpected token: expect <literal>, <identifier> or '('.".into()),
+        }
     }
 
     pub fn parse_expr(&mut self) -> Result<Expression, String> {
-        let x = self.next();
-
-        if x != None {
-        } else {
-            return Err("Error: unexpected EOF.".into());
-        }
-
-        let x = x.unwrap();
-
-        let expr = match x.kind {
-            TokenKind::LeftParen => {
-                let x = self.parse_expr()?;
-                self.match_tok(&TokenKind::RightParen)?;
-
-                x
-            }
-
-            TokenKind::Literal { .. } => make_lit(x),
-            TokenKind::Ident => {
-                if let Ok(x) = KeyWord::try_from(x.content.clone()) {
-                    return Err(format!(
-                        "At line {:?}, col {:?}: Unexpected keyword <{:?}>.",
-                        self.lex.line, self.lex.column, x
-                    ));
-                }
-
-                match x.content.as_str() {
-                    "true" => Literal(token::Literal::Boolean(true)),
-                    "false" => Literal(token::Literal::Boolean(false)),
-                    _ => make_ident(x.content),
-                }
-            }
-
-            _ => {
-                return Err(format!(
-                    "At line {:?}, col {:?}: Expected <expression>, found {:?}.",
-                    self.lex.line, self.lex.column, x.kind
-                ))
-            }
-        };
-
-        if let Some(op) = self.next_tok_is_op() {
-            self.parse_binary_expr(expr, op)
-        } else {
-            Ok(expr)
-        }
+        unimplemented!()
     }
 
     fn parse_binary_expr(&mut self, expr: Expression, op: BinaryOp) -> Result<Expression, String> {

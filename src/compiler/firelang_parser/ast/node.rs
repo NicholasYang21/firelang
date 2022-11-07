@@ -13,4 +13,9 @@ pub enum Expression {
     },
 
     Ident(String),
+
+    FuncCall {
+        ident: String,
+        args: Vec<Expression>,
+    },
 }
