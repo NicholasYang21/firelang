@@ -298,6 +298,7 @@ impl Parser<'_> {
         let expr = self.parse_expr()?;
 
         if self.lookahead().kind == TokenKind::RightParen {
+            self.eat();
             return Ok(expr);
         }
 
