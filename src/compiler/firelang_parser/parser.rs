@@ -332,6 +332,7 @@ impl Parser<'_> {
                 if self.lookahead().kind != TokenKind::Comma {
                     return Err("Error: expected a ',' after the argument".into());
                 }
+                self.eat();
             }
         }
 
