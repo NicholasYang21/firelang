@@ -280,7 +280,12 @@ impl Parser<'_> {
     }
 
     pub fn parse(&mut self) -> Result<Statement, String> {
-        self.parse_var_decl()
+        return if self.match_keyword(&KeyWord::VAR).is_ok() {
+            self.eat();
+            self.parse_var_decl()
+        } else {
+            Err("Unexpected".into())
+        }
     }
 
     fn parse_literal(&mut self) -> Result<Expression, String> {

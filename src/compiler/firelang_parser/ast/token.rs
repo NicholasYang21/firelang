@@ -37,7 +37,7 @@ pub enum BinaryOp {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum KeyWord {
-    IMM,
+    VAR,
     MUT,
     IF,
     ELSE,
@@ -55,7 +55,7 @@ impl TryFrom<String> for KeyWord {
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         match value.as_str() {
-            "imm" => Ok(Self::IMM),
+            "var" => Ok(Self::VAR),
             "mut" => Ok(Self::MUT),
             "if" => Ok(Self::IF),
             "else" => Ok(Self::ELSE),
