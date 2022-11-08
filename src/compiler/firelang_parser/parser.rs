@@ -313,6 +313,7 @@ impl Parser<'_> {
         ident = make_ident(x.content.clone());
 
         if self.lookahead().kind != TokenKind::LeftParen {
+            self.eat();
             return Ok(ident);
         }
 
@@ -417,6 +418,7 @@ impl Parser<'_> {
         let mut ty: String = "".into();
 
         if self.match_keyword(&KeyWord::MUT).is_ok() {
+
             mutable = true;
         }
 
@@ -437,6 +439,7 @@ impl Parser<'_> {
         if self.match_tok(&TokenKind::Equal).is_err() {
             return Err("Error: A variable must have a initial value when declare it.".into());
         }
+        self.eat();
 
         let rhs = self.parse_expr();
 

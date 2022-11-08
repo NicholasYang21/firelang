@@ -4,7 +4,7 @@ use std::io::Read;
 
 fn main() {
     let mut buffer = String::new();
-    std::fs::File::open("./test/binary_parsing.test")
+    std::fs::File::open("./test/var_decl.test")
         .unwrap()
         .read_to_string(&mut buffer)
         .expect("ERROR");
