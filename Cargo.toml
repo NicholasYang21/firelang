@@ -17,9 +17,5 @@ opt-level = 0
 clap = "*"
 anyhow = "*"
 unicode-xid = "*"
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm12-0"] }
 once_cell = "1.16.0"
-llvm-sys = "*"
-
-[dependencies.iron_llvm]
-git = "https://github.com/jauhien/iron-llvm.git"
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm12-0"] }
