@@ -72,7 +72,7 @@ impl Parser<'_> {
         self.next().unwrap();
     }
 
-    fn _match_tok(&mut self, s: &TokenKind) -> Result<(), String> {
+    fn match_tok(&mut self, s: &TokenKind) -> Result<(), String> {
         let k = self.lookahead().kind;
 
         if k != *s {
@@ -85,7 +85,7 @@ impl Parser<'_> {
         Ok(())
     }
 
-    fn _match_keyword(&self, s: &KeyWord) -> Result<(), String> {
+    fn match_keyword(&self, s: &KeyWord) -> Result<(), String> {
         let k = self.lookahead();
 
         if let Ok(x) = KeyWord::try_from(k.content.clone()) {
@@ -279,8 +279,8 @@ impl Parser<'_> {
         }
     }
 
-    pub fn parse(&mut self) -> Result<Expression, String> {
-        self.parse_expr()
+    pub fn parse(&mut self) -> Result<Statement, String> {
+        self.parse_var_decl()
     }
 
     fn parse_literal(&mut self) -> Result<Expression, String> {
@@ -404,5 +404,53 @@ impl Parser<'_> {
                 rhs: Box::new(rhs.unwrap()),
             };
         }
+    }
+
+    pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
+        unimplemented!()
+    }
+
+    // var (mut) <ident>(":" <type>) = <expr>
+    pub fn parse_var_decl(&mut self) -> Result<Statement, String> {
+        let mut mutable = false;
+        let mut ident: String = "".into();
+        let mut ty: String = "".into();
+
+        if self.match_keyword(&KeyWord::MUT).is_ok() {
+            mutable = true;
+        }
+
+        if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
+            ident = x;
+        } else {
+            return Err("Expect <identifier> after keyword 'var'.".into());
+        }
+
+        if self.match_tok(&TokenKind::Colon).is_ok() {
+            if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
+                ty = x;
+            } else {
+                return Err("Expect <type-name> after ':' in variable declaring.".into());
+            }
+        }
+
+        if self.match_tok(&TokenKind::Equal).is_err() {
+            return Err("Error: A variable must have a initial value when declare it.".into());
+        }
+
+        let rhs = self.parse_expr();
+
+        if rhs.is_err() {
+            return Err("Error: Value of the variable must be a expression.".into());
+        }
+
+        let value = rhs.unwrap();
+
+        Ok( Statement::VariableDecl {
+            ident,
+            ty,
+            mutable,
+            value
+        })
     }
 }

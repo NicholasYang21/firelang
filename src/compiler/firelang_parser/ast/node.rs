@@ -20,10 +20,12 @@ pub enum Expression {
     },
 }
 
+#[derive(Debug)]
 pub struct Block {
     block: Vec<Statement>,
 }
 
+#[derive(Debug)]
 pub enum Statement {
     Block(Block),
 
@@ -36,6 +38,7 @@ pub enum Statement {
     VariableDecl {
         ident: String,
         ty: String,
+        mutable: bool,
         value: Expression,
     },
 
