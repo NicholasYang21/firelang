@@ -1,6 +1,6 @@
-use std::io::Read;
 use firelang::compiler::firelang_lexer::lexer::*;
 use firelang::compiler::firelang_parser::parser::Parser;
+use std::io::Read;
 
 fn main() {
     let mut buffer = String::new();

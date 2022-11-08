@@ -19,3 +19,32 @@ pub enum Expression {
         args: Vec<Expression>,
     },
 }
+
+pub struct Block {
+    block: Vec<Statement>,
+}
+
+pub enum Statement {
+    Block(Block),
+
+    FuncDecl {
+        ident: String,
+        params: Vec<Expression>,
+        body: Block,
+    },
+
+    VariableDecl {
+        ident: String,
+        ty: String,
+        value: Expression,
+    },
+
+    Return(Expression),
+
+    If {
+        cond: Expression,
+        block: Block,
+        // else
+        els: Option<Block>,
+    },
+}

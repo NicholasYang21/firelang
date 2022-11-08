@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 use std::ops::Range;
 
 pub struct FireError {
-    messages: Vec<String>
+    messages: Vec<String>,
 }
 
 pub enum Type {
@@ -16,7 +16,7 @@ impl Display for FireError {
         let mut message: String = "".into();
         for s in self.messages {
             message.push_str((s + "\n").as_str());
-        };
+        }
 
         write!(f, "{}", message)
     }
@@ -32,11 +32,9 @@ impl FireError {
         }
 
         FireError {
-            messages: vec![message]
+            messages: vec![message],
         }
     }
 
-    fn stress(line: u32, range: Range<u32>) -> &mut FireError {
-
-    }
+    fn stress(line: u32, range: Range<u32>) -> &mut FireError {}
 }
