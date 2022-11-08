@@ -313,7 +313,6 @@ impl Parser<'_> {
         ident = make_ident(x.content.clone());
 
         if self.lookahead().kind != TokenKind::LeftParen {
-            self.eat();
             return Ok(ident);
         }
 
@@ -418,7 +417,7 @@ impl Parser<'_> {
         let mut ty: String = "".into();
 
         if self.match_keyword(&KeyWord::MUT).is_ok() {
-
+            self.eat();
             mutable = true;
         }
 
