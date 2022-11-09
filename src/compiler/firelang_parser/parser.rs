@@ -285,7 +285,7 @@ impl Parser<'_> {
             self.parse_var_decl()
         } else {
             Err("Unexpected".into())
-        }
+        };
     }
 
     fn parse_literal(&mut self) -> Result<Expression, String> {
@@ -453,11 +453,11 @@ impl Parser<'_> {
 
         let value = rhs.unwrap();
 
-        Ok( Statement::VariableDecl {
+        Ok(Statement::VariableDecl {
             ident,
             ty,
             mutable,
-            value
+            value,
         })
     }
 }
