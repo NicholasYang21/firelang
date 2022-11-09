@@ -1,1 +1,1 @@
-var mut p = p * 2
+let mut p = p * 2

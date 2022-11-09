@@ -280,12 +280,7 @@ impl Parser<'_> {
     }
 
     pub fn parse(&mut self) -> Result<Statement, String> {
-        return if self.match_keyword(&KeyWord::VAR).is_ok() {
-            self.eat();
-            self.parse_var_decl()
-        } else {
-            Err("Unexpected".into())
-        };
+        self.parse_stmt()
     }
 
     fn parse_literal(&mut self) -> Result<Expression, String> {
@@ -411,6 +406,25 @@ impl Parser<'_> {
         }
     }
 
+    pub fn parse_stmt(&mut self) -> Result<Statement, String> {
+        if self.match_keyword(&KeyWord::FN).is_ok() {
+            self.eat();
+            return self.parse_func_decl();
+        }
+
+        if self.match_keyword(&KeyWord::LET).is_ok() {
+            self.eat();
+            return self.parse_var_decl();
+        }
+
+        if self.match_tok(&TokenKind::LeftBrace).is_ok() {
+            self.eat();
+            return self.parse_block();
+        }
+
+        unimplemented!()
+    }
+
     pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
         unimplemented!()
     }
@@ -418,7 +432,7 @@ impl Parser<'_> {
     // var (mut) <ident>(":" <type>) = <expr>
     pub fn parse_var_decl(&mut self) -> Result<Statement, String> {
         let mut mutable = false;
-        let mut ident: String = "".into();
+        let ident: String;
         let mut ty: String = "".into();
 
         if self.match_keyword(&KeyWord::MUT).is_ok() {
@@ -459,5 +473,33 @@ impl Parser<'_> {
             mutable,
             value,
         })
+    }
+
+    pub fn parse_return(&mut self) -> Result<Statement, String> {
+        let expr = self.parse_expr();
+
+        if expr.is_err() {
+            return Err("Error: expect <expr> after keyword 'return'.".into());
+        }
+
+        Ok(Statement::Return(expr.unwrap()))
+    }
+
+    pub fn parse_block(&mut self) -> Result<Statement, String> {
+        self.eat();
+        let mut block: Block = Block { block: Vec::new() };
+
+        while self.lookahead().kind != TokenKind::RightBrace {
+            let x = self.parse_stmt();
+
+            if x.is_err() {
+                return Err("Error: expect statements in block.".into());
+            }
+
+            block.block.push(x.unwrap());
+        }
+        self.eat();
+
+        Ok(Statement::Block(block))
     }
 }

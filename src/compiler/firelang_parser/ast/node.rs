@@ -22,7 +22,7 @@ pub enum Expression {
 
 #[derive(Debug)]
 pub struct Block {
-    block: Vec<Statement>,
+    pub block: Vec<Statement>,
 }
 
 #[derive(Debug)]
