@@ -2,7 +2,7 @@ use crate::compiler::firelang_parser::ast::token::Literal;
 
 use super::token::BinaryOp;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum Expression {
     Literal(Literal),
 
@@ -22,19 +22,19 @@ pub enum Expression {
     None
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub struct Block {
     pub block: Vec<Statement>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum Behaviour {
     Copy,
     Move,
     Ref,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum Statement {
     Block(Block),
 
@@ -60,4 +60,6 @@ pub enum Statement {
         // else
         els: Option<Block>,
     },
+
+    Eof
 }

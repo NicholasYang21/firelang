@@ -1,6 +1,7 @@
 use firelang::compiler::firelang_lexer::lexer::*;
 use firelang::compiler::firelang_parser::parser::Parser;
 use std::io::Read;
+use firelang::compiler::firelang_parser::ast::node::Statement;
 
 fn main() {
     let mut buffer = String::new();
@@ -11,14 +12,17 @@ fn main() {
 
     let lexer = Lexer::new(buffer.as_str());
     let mut parser = Parser::new(lexer);
-    let mut counter = 0;
 
-    while counter <= 12 {
+    loop {
         let expr = parser.parse();
-
-        println!("{:#?}", expr);
-
-        counter += 1;
+        if let Ok(expr) = expr {
+            if expr != Statement::Eof {
+                println!("{:#?}", expr);
+            } else { break; }
+        } else {
+            println!("{}", expr.unwrap_err());
+            break;
+        }
     }
 
 }

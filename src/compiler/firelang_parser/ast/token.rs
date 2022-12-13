@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Clone)]
 pub enum BinaryOp {
     Add,        // +
     Sub,        // -
@@ -36,6 +36,7 @@ pub enum BinaryOp {
     Ref,        // ->
     Move,       // <-
     Scope,      // ::
+    Is,         // :
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -71,7 +72,7 @@ impl TryFrom<String> for KeyWord {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialOrd, PartialEq)]
 pub enum Literal {
     Byte(i8),
     Int16(i16),

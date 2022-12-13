@@ -44,6 +44,7 @@ static PRECEDENCE: Lazy<HashMap<BinaryOp, i32>> = Lazy::new(|| {
         (BinaryOp::Mul, 14),
         (BinaryOp::Div, 14),
         (BinaryOp::Mod, 14),
+        (BinaryOp::Scope, 15),
     ]
     .into_iter()
     .collect()
@@ -288,6 +289,17 @@ impl Parser<'_> {
                 Some(BinaryOp::Assign)
             }
 
+            TokenKind::Colon => {
+                self.eat();
+
+                if self.lookahead().kind == TokenKind::Colon {
+                    self.eat();
+                    return Some(BinaryOp::Scope)
+                }
+
+                Some(BinaryOp::Is)
+            }
+
             TokenKind::Eof => None,
 
             _ => None,
@@ -431,21 +443,28 @@ impl Parser<'_> {
         if self.match_keyword(&KeyWord::FN).is_ok() {
             self.eat();
             result = self.parse_func_decl();
+            if self.match_tok(&TokenKind::Semicolon).is_err() {
+                result = Err("There must be a ';' after a <statement>.".into());
+            }
         } else if self.match_keyword(&KeyWord::LET).is_ok() {
             self.eat();
             result = self.parse_var_decl();
+            if self.match_tok(&TokenKind::Semicolon).is_err() {
+                result = Err("There must be a ';' after a <statement>.".into());
+            }
         } else if self.match_tok(&TokenKind::LeftBrace).is_ok() {
             self.eat();
             result = self.parse_block();
         } else {
+            if self.lookahead().kind == TokenKind::Eof {
+                return Ok(Statement::Eof);
+            }
             result = Err("Error: expect <statement>.".into());
         }
 
         result.as_ref()?;
 
-        if self.match_tok(&TokenKind::Semicolon).is_err() {
-            result = Err("There must be a ';' after a <statement>.".into());
-        }
+
         self.eat();
 
         result
@@ -454,11 +473,8 @@ impl Parser<'_> {
     pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
         self.match_keyword(&KeyWord::FN)?;
 
-        let ident: Expression;
+        let ident: Expression = self.parse_ident_or_call()?;
         let mut args: Vec<Expression> = Vec::new();
-
-        let x = self.next().unwrap();
-        ident = make_ident(x.content.clone());
 
         if self.lookahead().kind != TokenKind::LeftParen {
             return Err("Expect a '(' after the name of function.".into());
@@ -502,7 +518,6 @@ impl Parser<'_> {
             };
 
             let rhs = self.parse_expr();
-            println!("{:?}", rhs);
 
             if rhs.is_err() {
                 return Err("Error: Value of the variable must be a expression.".into());
@@ -533,15 +548,12 @@ impl Parser<'_> {
     }
 
     pub fn parse_block(&mut self) -> Result<Statement, String> {
-        self.eat();
         let mut block: Block = Block { block: Vec::new() };
 
         while self.lookahead().kind != TokenKind::RightBrace {
             let x = self.parse_stmt();
 
-            if x.is_err() {
-                return Err("Error: expect statements in block.".into());
-            }
+            x.as_ref()?;
 
             block.block.push(x.unwrap());
         }
