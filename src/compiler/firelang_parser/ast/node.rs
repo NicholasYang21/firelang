@@ -18,11 +18,20 @@ pub enum Expression {
         ident: String,
         args: Vec<Expression>,
     },
+
+    None
 }
 
 #[derive(Debug)]
 pub struct Block {
     pub block: Vec<Statement>,
+}
+
+#[derive(Debug)]
+pub enum Behaviour {
+    Copy,
+    Move,
+    Ref,
 }
 
 #[derive(Debug)]
@@ -39,6 +48,7 @@ pub enum Statement {
         ident: String,
         ty: String,
         mutable: bool,
+        behaviour: Behaviour,
         value: Expression,
     },
 

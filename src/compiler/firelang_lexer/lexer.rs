@@ -1,8 +1,6 @@
+use super::unescape::*;
 use std::fmt::Formatter;
 use std::str::Chars;
-
-use super::unescape::*;
-
 use LiteralKind::*;
 use NumBase::*;
 use RawStrError::*;
@@ -244,20 +242,15 @@ impl Lexer<'_> {
         if self.source.as_str().is_empty() {
             return self.make_token(Eof, "End of file.");
         }
-
         let first = self.next().unwrap();
-
         match first {
             EOF => self.make_token(Eof, "End of file."),
-
             c if c.is_whitespace() => self.whitespace(),
-
             '/' => match self.lookahead() {
                 '/' => self.line_comment(),
                 '*' => self.block_comment(),
                 _ => self.make_token(Slash, "/"),
             },
-
             'r' => {
                 if self.lookahead() == '"' {
                     self.next();

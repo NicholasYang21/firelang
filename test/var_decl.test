@@ -1,1 +1,6 @@
-let mut p = p * 2
+let immutable_var = 5;
+let mut mutable_var = 5;
+let immutable_ref -> immutable_var;
+let mut mutable_ref -> mutable_var;
+let owned_var = String::new("Yes!");
+let move_ownership <- owned_var;

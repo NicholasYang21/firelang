@@ -126,6 +126,11 @@ impl Parser<'_> {
                     return Some(BinaryOp::SubEq);
                 }
 
+                if self.lookahead().kind == TokenKind::Ge {
+                    self.eat();
+                    return Some(BinaryOp::Ref);
+                }
+
                 Some(BinaryOp::Sub)
             }
 
@@ -234,6 +239,11 @@ impl Parser<'_> {
                         Some(BinaryOp::Lte)
                     }
 
+                    TokenKind::Minus => {
+                        self.eat();
+                        Some(BinaryOp::Move)
+                    }
+
                     _ => Some(BinaryOp::Lt),
                 }
             }
@@ -273,6 +283,11 @@ impl Parser<'_> {
                 Some(BinaryOp::LogicalNot)
             }
 
+            TokenKind::Equal => {
+                self.eat();
+                Some(BinaryOp::Assign)
+            }
+
             TokenKind::Eof => None,
 
             _ => None,
@@ -281,6 +296,10 @@ impl Parser<'_> {
 
     pub fn parse(&mut self) -> Result<Statement, String> {
         self.parse_stmt()
+    }
+
+    pub fn has_content(&self) -> bool {
+        self.lookahead().kind != TokenKind::Eof
     }
 
     fn parse_literal(&mut self) -> Result<Expression, String> {
@@ -407,29 +426,48 @@ impl Parser<'_> {
     }
 
     pub fn parse_stmt(&mut self) -> Result<Statement, String> {
+        let mut result: Result<Statement, String>;
+
         if self.match_keyword(&KeyWord::FN).is_ok() {
             self.eat();
-            return self.parse_func_decl();
-        }
-
-        if self.match_keyword(&KeyWord::LET).is_ok() {
+            result = self.parse_func_decl();
+        } else if self.match_keyword(&KeyWord::LET).is_ok() {
             self.eat();
-            return self.parse_var_decl();
-        }
-
-        if self.match_tok(&TokenKind::LeftBrace).is_ok() {
+            result = self.parse_var_decl();
+        } else if self.match_tok(&TokenKind::LeftBrace).is_ok() {
             self.eat();
-            return self.parse_block();
+            result = self.parse_block();
+        } else {
+            result = Err("Error: expect <statement>.".into());
         }
 
-        unimplemented!()
+        result.as_ref()?;
+
+        if self.match_tok(&TokenKind::Semicolon).is_err() {
+            result = Err("There must be a ';' after a <statement>.".into());
+        }
+        self.eat();
+
+        result
     }
 
     pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
+        self.match_keyword(&KeyWord::FN)?;
+
+        let ident: Expression;
+        let mut args: Vec<Expression> = Vec::new();
+
+        let x = self.next().unwrap();
+        ident = make_ident(x.content.clone());
+
+        if self.lookahead().kind != TokenKind::LeftParen {
+            return Err("Expect a '(' after the name of function.".into());
+        }
+
         unimplemented!()
     }
 
-    // var (mut) <ident>(":" <type>) = <expr>
+    // "let" ("mut") <ident>(":" <type: ident>) ({ "=" | "<-" | "->" } <expr>)
     pub fn parse_var_decl(&mut self) -> Result<Statement, String> {
         let mut mutable = false;
         let ident: String;
@@ -443,10 +481,11 @@ impl Parser<'_> {
         if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
             ident = x;
         } else {
-            return Err("Expect <identifier> after keyword 'var'.".into());
+            return Err("Expect <identifier> after keyword 'let'.".into());
         }
 
         if self.match_tok(&TokenKind::Colon).is_ok() {
+            self.eat();
             if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
                 ty = x;
             } else {
@@ -454,25 +493,33 @@ impl Parser<'_> {
             }
         }
 
-        if self.match_tok(&TokenKind::Equal).is_err() {
-            return Err("Error: A variable must have a initial value when declare it.".into());
+        if let Some(o) = self.next_tok_is_op() {
+            let behaviour = match o {
+                BinaryOp::Assign => Behaviour::Copy,
+                BinaryOp::Ref => Behaviour::Ref,
+                BinaryOp::Move => Behaviour::Move,
+                _ => { return Err("The assignment operator must be '=', '->' or '<-' ".into()); }
+            };
+
+            let rhs = self.parse_expr();
+            println!("{:?}", rhs);
+
+            if rhs.is_err() {
+                return Err("Error: Value of the variable must be a expression.".into());
+            }
+
+            let value = rhs.unwrap();
+
+            Ok(Statement::VariableDecl {
+                ident,
+                ty,
+                mutable,
+                behaviour,
+                value,
+            })
+        } else {
+            Err("Must initialize the variable when declare it.".into())
         }
-        self.eat();
-
-        let rhs = self.parse_expr();
-
-        if rhs.is_err() {
-            return Err("Error: Value of the variable must be a expression.".into());
-        }
-
-        let value = rhs.unwrap();
-
-        Ok(Statement::VariableDecl {
-            ident,
-            ty,
-            mutable,
-            value,
-        })
     }
 
     pub fn parse_return(&mut self) -> Result<Statement, String> {

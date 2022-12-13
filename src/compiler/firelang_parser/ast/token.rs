@@ -33,6 +33,9 @@ pub enum BinaryOp {
     XorEq,      // ^=
     LshEq,      // <<=
     RshEq,      // >>=
+    Ref,        // ->
+    Move,       // <-
+    Scope,      // ::
 }
 
 #[derive(Debug, Eq, PartialEq)]

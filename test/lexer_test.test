@@ -1,6 +1,5 @@
 // This file is not a Fire source file, it is for testing the lexer.
 
-
 /* Block */
 /*
  * Block with newlines

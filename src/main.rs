@@ -11,7 +11,14 @@ fn main() {
 
     let lexer = Lexer::new(buffer.as_str());
     let mut parser = Parser::new(lexer);
-    let expr = parser.parse();
+    let mut counter = 0;
 
-    println!("{:#?}", expr);
+    while counter <= 12 {
+        let expr = parser.parse();
+
+        println!("{:#?}", expr);
+
+        counter += 1;
+    }
+
 }
