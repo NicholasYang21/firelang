@@ -10,12 +10,8 @@ license = "MIT"
 opt-level = 3
 panic = "abort"
 
-[profile.dev]
-opt-level = 0
-
 [dependencies]
 clap = "*"
 anyhow = "*"
 unicode-xid = "*"
 once_cell = "1.16.0"
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm12-0"] }

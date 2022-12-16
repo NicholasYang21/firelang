@@ -19,7 +19,7 @@ pub enum Expression {
         args: Vec<Expression>,
     },
 
-    None
+    None,
 }
 
 #[derive(Debug, PartialOrd, PartialEq)]
@@ -40,7 +40,8 @@ pub enum Statement {
 
     FuncDecl {
         ident: String,
-        params: Vec<Expression>,
+        // param := <ident> ("=" | "<-" | "->") <type>
+        params: (String, Behaviour, String),
         body: Block,
     },
 
@@ -61,5 +62,5 @@ pub enum Statement {
         els: Option<Block>,
     },
 
-    Eof
+    Eof,
 }

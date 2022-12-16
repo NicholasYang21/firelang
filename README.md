@@ -1,6 +1,9 @@
 ## Firelang project
 
+A simple programming language write in Rust.
 
+The project includes the implements for
+compiler and virtual machine of firelang.
 
 ## Authors
 

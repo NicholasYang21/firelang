@@ -294,7 +294,7 @@ impl Parser<'_> {
 
                 if self.lookahead().kind == TokenKind::Colon {
                     self.eat();
-                    return Some(BinaryOp::Scope)
+                    return Some(BinaryOp::Scope);
                 }
 
                 Some(BinaryOp::Is)
@@ -336,11 +336,22 @@ impl Parser<'_> {
         Err("Error: Unclosed '('.".into())
     }
 
+    fn parse_ident(&mut self) -> Result<Token, String> {
+        let x = self.next().unwrap();
+
+        if x.kind != TokenKind::Ident {
+            return Err("Expect an <identifier>.".into());
+        }
+
+        Ok(x)
+    }
+
     fn parse_ident_or_call(&mut self) -> Result<Expression, String> {
         let ident: Expression;
         let mut args: Vec<Expression> = Vec::new();
 
-        let x = self.next().unwrap();
+        let x = self.parse_ident()?;
+
         ident = make_ident(x.content.clone());
 
         if self.lookahead().kind != TokenKind::LeftParen {
@@ -408,10 +419,7 @@ impl Parser<'_> {
 
             let mut rhs = self.parse_primary();
             if rhs.is_err() {
-                return Err(format!(
-                    "Error: expect <literal>, <identifier> or '(' after operator. {:#?}",
-                    rhs
-                ));
+                return Err("Error: expect <literal>, <identifier> or '(' after operator.".into());
             }
 
             let p2 = {
@@ -464,21 +472,23 @@ impl Parser<'_> {
 
         result.as_ref()?;
 
-
         self.eat();
 
         result
     }
 
     pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
-        self.match_keyword(&KeyWord::FN)?;
-
-        let ident: Expression = self.parse_ident_or_call()?;
+        let ident = self.parse_ident()?;
         let mut args: Vec<Expression> = Vec::new();
 
         if self.lookahead().kind != TokenKind::LeftParen {
-            return Err("Expect a '(' after the name of function.".into());
+            return Err("Expect a '(' after the function name.".into());
         }
+
+        let parse_arg = || -> Result<(String, Behaviour, String), String> {
+            let param_name = self.parse_ident()?;
+            unimplemented!()
+        };
 
         unimplemented!()
     }
@@ -514,7 +524,9 @@ impl Parser<'_> {
                 BinaryOp::Assign => Behaviour::Copy,
                 BinaryOp::Ref => Behaviour::Ref,
                 BinaryOp::Move => Behaviour::Move,
-                _ => { return Err("The assignment operator must be '=', '->' or '<-' ".into()); }
+                _ => {
+                    return Err("The assignment operator must be '=', '->' or '<-' ".into());
+                }
             };
 
             let rhs = self.parse_expr();
