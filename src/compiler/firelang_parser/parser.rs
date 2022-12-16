@@ -321,7 +321,7 @@ impl Parser<'_> {
             }
         }
 
-        Err("Error: Expect <literal> but there is EOF.".into())
+        Err("Error: Expected <literal> but there is EOF.".into())
     }
 
     fn parse_paren(&mut self) -> Result<Expression, String> {
@@ -340,7 +340,7 @@ impl Parser<'_> {
         let x = self.next().unwrap();
 
         if x.kind != TokenKind::Ident {
-            return Err("Expect an <identifier>.".into());
+            return Err("Expected an <identifier>.".into());
         }
 
         Ok(x)
@@ -372,7 +372,7 @@ impl Parser<'_> {
                 }
 
                 if self.lookahead().kind != TokenKind::Comma {
-                    return Err("Error: expected a ',' after the argument".into());
+                    return Err("Error: Expected a ',' after the argument".into());
                 }
                 self.eat();
             }
@@ -391,7 +391,7 @@ impl Parser<'_> {
             TokenKind::Literal { .. } => self.parse_literal(),
             TokenKind::Ident { .. } => self.parse_ident_or_call(),
             TokenKind::LeftParen => self.parse_paren(),
-            _ => Err("Error: unexpected token: expect <literal>, <identifier> or '('.".into()),
+            _ => Err("Error: Unexpected token: Expected <literal>, <identifier> or '('.".into()),
         }
     }
 
@@ -419,7 +419,7 @@ impl Parser<'_> {
 
             let mut rhs = self.parse_primary();
             if rhs.is_err() {
-                return Err("Error: expect <literal>, <identifier> or '(' after operator.".into());
+                return Err("Error: Expected <literal>, <identifier> or '(' after operator.".into());
             }
 
             let p2 = {
@@ -451,9 +451,6 @@ impl Parser<'_> {
         if self.match_keyword(&KeyWord::FN).is_ok() {
             self.eat();
             result = self.parse_func_decl();
-            if self.match_tok(&TokenKind::Semicolon).is_err() {
-                result = Err("There must be a ';' after a <statement>.".into());
-            }
         } else if self.match_keyword(&KeyWord::LET).is_ok() {
             self.eat();
             result = self.parse_var_decl();
@@ -463,11 +460,14 @@ impl Parser<'_> {
         } else if self.match_tok(&TokenKind::LeftBrace).is_ok() {
             self.eat();
             result = self.parse_block();
+        } else if self.match_keyword(&KeyWord::RETURN).is_ok() {
+            self.eat();
+            result = self.parse_return();
         } else {
             if self.lookahead().kind == TokenKind::Eof {
                 return Ok(Statement::Eof);
             }
-            result = Err("Error: expect <statement>.".into());
+            result = Err("Error: Expected <statement>.".into());
         }
 
         result.as_ref()?;
@@ -478,19 +478,60 @@ impl Parser<'_> {
     }
 
     pub fn parse_func_decl(&mut self) -> Result<Statement, String> {
-        let ident = self.parse_ident()?;
-        let mut args: Vec<Expression> = Vec::new();
+        let name = self.parse_ident()?;
+        let mut params: Vec<(String, Behaviour, String)> = Vec::new();
 
         if self.lookahead().kind != TokenKind::LeftParen {
-            return Err("Expect a '(' after the function name.".into());
+            return Err("Expected a '(' after the function name.".into());
         }
 
-        let parse_arg = || -> Result<(String, Behaviour, String), String> {
-            let param_name = self.parse_ident()?;
-            unimplemented!()
-        };
+        self.eat(); // eat '('.
 
-        unimplemented!()
+        while self.lookahead().kind != TokenKind::RightParen {
+            if self.lookahead().kind == TokenKind::Comma {
+                self.eat(); // eat ',' between the parameters.
+            }
+
+            let param = {
+                let param_name = self.parse_ident()?;
+                let behaviour = self.next_tok_is_op();
+
+                if behaviour.is_none() {
+                    return Err("Expected '=', '->' or '<-' after the parameter name".into());
+                }
+
+                let bhv: Behaviour = match behaviour.unwrap() {
+                    BinaryOp::Assign => Behaviour::Copy,
+                    BinaryOp::Ref => Behaviour::Ref,
+                    BinaryOp::Move => Behaviour::Move,
+                    _ => return Err("Expected '=', '->' or '<-' after the parameter name".into()),
+                };
+
+                let ty = self.parse_ident()?;
+
+                (param_name.content, bhv, ty.content)
+            };
+
+            params.push(param);
+        }
+
+        self.eat(); // eat ')'.
+
+        if self.lookahead().kind != TokenKind::LeftBrace {
+            return Err("Expected a block as function body after function signature.".into());
+        }
+
+        self.eat(); // eat '{'.
+
+        if let Ok(Statement::Block(body)) = self.parse_block() {
+            Ok(Statement::FuncDecl {
+                ident: name.content,
+                params,
+                body,
+            })
+        } else {
+            Err("Expected a block as function body after function signature.".into())
+        }
     }
 
     // "let" ("mut") <ident>(":" <type: ident>) ({ "=" | "<-" | "->" } <expr>)
@@ -507,7 +548,7 @@ impl Parser<'_> {
         if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
             ident = x;
         } else {
-            return Err("Expect <identifier> after keyword 'let'.".into());
+            return Err("Expected <identifier> after keyword 'let'.".into());
         }
 
         if self.match_tok(&TokenKind::Colon).is_ok() {
@@ -515,7 +556,7 @@ impl Parser<'_> {
             if let Ok(Expression::Ident(x)) = self.parse_ident_or_call() {
                 ty = x;
             } else {
-                return Err("Expect <type-name> after ':' in variable declaring.".into());
+                return Err("Expected <type-name> after ':' in variable declaring.".into());
             }
         }
 
@@ -553,7 +594,7 @@ impl Parser<'_> {
         let expr = self.parse_expr();
 
         if expr.is_err() {
-            return Err("Error: expect <expr> after keyword 'return'.".into());
+            return Err("Error: Expected <expr> after keyword 'return'.".into());
         }
 
         Ok(Statement::Return(expr.unwrap()))
@@ -563,11 +604,9 @@ impl Parser<'_> {
         let mut block: Block = Block { block: Vec::new() };
 
         while self.lookahead().kind != TokenKind::RightBrace {
-            let x = self.parse_stmt();
+            let x = self.parse_stmt()?;
 
-            x.as_ref()?;
-
-            block.block.push(x.unwrap());
+            block.block.push(x);
         }
         self.eat();
 

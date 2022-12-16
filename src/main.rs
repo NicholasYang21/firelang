@@ -5,7 +5,7 @@ use std::io::Read;
 
 fn main() {
     let mut buffer = String::new();
-    std::fs::File::open("./test/var_decl.test")
+    std::fs::File::open("./test/parser_test.test")
         .unwrap()
         .read_to_string(&mut buffer)
         .expect("ERROR");
@@ -17,7 +17,7 @@ fn main() {
         let expr = parser.parse();
         if let Ok(expr) = expr {
             if expr != Statement::Eof {
-                println!("{:#?}", expr);
+                println!("{expr:#?}");
             } else {
                 break;
             }

@@ -52,7 +52,7 @@ pub enum KeyWord {
 
 impl Display for KeyWord {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str(format!("{:?}", self).as_str())
+        f.write_str(format!("{self:?}").as_str())
     }
 }
 
@@ -67,6 +67,7 @@ impl TryFrom<String> for KeyWord {
             "else" => Ok(Self::ELSE),
             "for" => Ok(Self::FOR),
             "return" => Ok(Self::RETURN),
+            "fn" => Ok(Self::FN),
             _ => Err("".into()),
         }
     }

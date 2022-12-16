@@ -41,7 +41,7 @@ pub enum Statement {
     FuncDecl {
         ident: String,
         // param := <ident> ("=" | "<-" | "->") <type>
-        params: (String, Behaviour, String),
+        params: Vec<(String, Behaviour, String)>,
         body: Block,
     },
 
