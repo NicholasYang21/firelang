@@ -72,7 +72,7 @@ pub fn make_lit(tok: Token) -> Expression {
                     token::Literal::UInt(tok.content.replace("u32", "").parse::<u32>().unwrap())
                 }
 
-                "b" => token::Literal::Byte(tok.content.replace("b", "").parse::<i8>().unwrap()),
+                "b" => token::Literal::Byte(tok.content.replace('b', "").parse::<i8>().unwrap()),
 
                 "u8" => token::Literal::UByte(tok.content.replace("u8", "").parse::<u8>().unwrap()),
 
