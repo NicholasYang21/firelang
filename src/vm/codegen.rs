@@ -1,14 +1,5 @@
 use crate::compiler::firelang_parser::ast::node::*;
 
-enum OpType {
-    Add,
-    Sub,
-    Mul,
-}
-
-pub struct ByteCode {
-    opcode: OpType
-}
 
 pub trait Generator {
     fn gen(&mut self) -> ByteCode;
